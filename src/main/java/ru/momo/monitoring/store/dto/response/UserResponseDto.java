@@ -1,4 +1,4 @@
-package ru.momo.monitoring.store.dto;
+package ru.momo.monitoring.store.dto.response;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -16,7 +16,7 @@ public class UserResponseDto {
     String firstname;
     String lastname;
     String patronymic;
-    Long phoneNumber;
+    String phoneNumber;
 
     public static UserResponseDto mapFromEntity(User user, UserData data) {
         return UserResponseDto

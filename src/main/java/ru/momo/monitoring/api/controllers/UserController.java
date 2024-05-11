@@ -3,11 +3,13 @@ package ru.momo.monitoring.api.controllers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import ru.momo.monitoring.services.UserService;
+import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
+import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
+
+import java.net.URI;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,6 +23,14 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(userService.getById(id));
+    }
+
+    @PostMapping("/")
+    public ResponseEntity<?> addNewUser(@RequestBody @Validated UserCreateRequestDto request) {
+        UserCreatedResponseDto response = userService.create(request);
+        return ResponseEntity
+                .created(URI.create("/api/v1/users/" + response.getUserId()))
+                .body(response);
     }
 
 }
