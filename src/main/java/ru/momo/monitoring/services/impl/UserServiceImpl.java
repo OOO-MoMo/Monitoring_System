@@ -52,9 +52,9 @@ public class UserServiceImpl implements UserService {
         }
 
         UserData data = UserCreateRequestDto.mapToUserDataEntity(request);
+        user.setUserData(data);
         data.setUser(user);
         userRepository.save(user);
-        userDataRepository.save(data);
         return UserCreatedResponseDto.MapFromEntity(user, data);
     }
 
@@ -84,6 +84,18 @@ public class UserServiceImpl implements UserService {
         userRepository.save(updatedUser);
 
         return UserUpdateResponseDto.mapFromEntity(updatedUser);
+    }
+
+    @Override
+    public void delete(Long id) {
+        User deletedUser = userRepository
+                .findById(id)
+                .orElseThrow(
+                        userBadRequestExceptionSupplier(
+                                "User with id = %d is not exist", id
+                        )
+                );
+        userRepository.delete(deletedUser);
     }
 
 }

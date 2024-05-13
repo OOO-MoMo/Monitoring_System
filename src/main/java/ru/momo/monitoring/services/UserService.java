@@ -18,4 +18,7 @@ public interface UserService {
     @Transactional(readOnly = false)
     UserUpdateResponseDto update(UserUpdateRequestDto request);
 
+    @Transactional(readOnly = false)
+    void delete(Long id);
+
 }
