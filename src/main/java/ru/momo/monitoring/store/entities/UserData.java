@@ -31,6 +31,6 @@ public class UserData {
     private String patronymic;
 
     @Column(name = "phone_number")
-    private Long phoneNumber;
+    private String phoneNumber;
 
 }

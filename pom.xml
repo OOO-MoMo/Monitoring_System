@@ -15,6 +15,9 @@
 	<properties>
 		<java.version>20</java.version>
 		<lombok.version>1.18.30</lombok.version>
+		<mapstruct.version>1.5.3.Final</mapstruct.version>
+		<jakarta-validation.version>3.0.2</jakarta-validation.version>
+		<hibernate-validator.version>8.0.1.Final</hibernate-validator.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -41,6 +44,25 @@
 			<version>${lombok.version}</version>
 			<optional>true</optional>
 		</dependency>
+
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>jakarta.validation</groupId>
+			<artifactId>jakarta.validation-api</artifactId>
+			<version>${jakarta-validation.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.hibernate.validator</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>${hibernate-validator.version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
