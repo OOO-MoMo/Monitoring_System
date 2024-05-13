@@ -5,14 +5,18 @@ import org.springframework.stereotype.Service;
 import ru.momo.monitoring.exceptions.user.UserBadRequestException;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
+import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
+import ru.momo.monitoring.store.dto.response.UserUpdateResponseDto;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
 import ru.momo.monitoring.store.repositories.UserDataRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
 
-import static ru.momo.monitoring.exceptions.user.UserBadRequestException.userNotFoundByIdExceptionSupplier;
+import java.util.Objects;
+
+import static ru.momo.monitoring.exceptions.user.UserBadRequestException.userBadRequestExceptionSupplier;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +30,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository
                 .findById(id)
                 .orElseThrow(
-                        userNotFoundByIdExceptionSupplier("User with id = %d is not found", id)
+                        userBadRequestExceptionSupplier("User with id = %d is not found", id)
                 );
 
         //user и так существует, поэтому сразу вызываю метод get()
@@ -43,7 +47,7 @@ public class UserServiceImpl implements UserService {
             throw new UserBadRequestException("User with name %s already exists", user.getUsername());
         }
 
-        if(!request.getPassword().equals(request.getPasswordConfirmation())) {
+        if (!request.getPassword().equals(request.getPasswordConfirmation())) {
             throw new UserBadRequestException("Password and password confirmation do not match");
         }
 
@@ -52,6 +56,34 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
         userDataRepository.save(data);
         return UserCreatedResponseDto.MapFromEntity(user, data);
+    }
+
+    /*Пока что изменяю только username
+    В будущем можно изменять и другие поля тоже*/
+    @Override
+    public UserUpdateResponseDto update(UserUpdateRequestDto request) {
+        if (Objects.equals(request.getOldUsername(), request.getNewUsername())) {
+            throw new UserBadRequestException("You already have this username");
+        }
+
+        User updatedUser = userRepository
+                .findByUsername(request.getOldUsername())
+                .orElseThrow(
+                        userBadRequestExceptionSupplier(
+                                "User with username = %s is not exist", request.getOldUsername()
+                        )
+                );
+
+        if (request.getNewUsername() != null) {
+            if (userRepository.findByUsername(request.getNewUsername()).isPresent()) {
+                throw new UserBadRequestException("User with name %s already exists", request.getNewUsername());
+            }
+            updatedUser.setUsername(request.getNewUsername());
+        }
+
+        userRepository.save(updatedUser);
+
+        return UserUpdateResponseDto.mapFromEntity(updatedUser);
     }
 
 }

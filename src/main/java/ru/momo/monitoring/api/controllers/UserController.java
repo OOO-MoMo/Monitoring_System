@@ -7,7 +7,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
+import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
+import ru.momo.monitoring.store.dto.response.UserUpdateResponseDto;
 
 import java.net.URI;
 
@@ -30,6 +32,14 @@ public class UserController {
         UserCreatedResponseDto response = userService.create(request);
         return ResponseEntity
                 .created(URI.create("/api/v1/users/" + response.getUserId()))
+                .body(response);
+    }
+
+    @PutMapping("/")
+    public ResponseEntity<?> updateUser(@RequestBody @Validated UserUpdateRequestDto request) {
+        UserUpdateResponseDto response = userService.update(request);
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(response);
     }
 

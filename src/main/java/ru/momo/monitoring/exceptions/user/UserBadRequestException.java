@@ -12,11 +12,11 @@ public class UserBadRequestException extends RuntimeException{
         super(String.format(message, args));
     }
 
-    public static Supplier<UserBadRequestException> userNotFoundByIdExceptionSupplier(String message){
+    public static Supplier<UserBadRequestException> userBadRequestExceptionSupplier(String message){
         return () -> new UserBadRequestException(message);
     }
 
-    public static Supplier<UserBadRequestException> userNotFoundByIdExceptionSupplier(String message, Object... args){
+    public static Supplier<UserBadRequestException> userBadRequestExceptionSupplier(String message, Object... args){
         return () -> new UserBadRequestException(message, args);
     }
 
