@@ -16,7 +16,7 @@ import ru.momo.monitoring.store.repositories.UserRepository;
 
 import java.util.Objects;
 
-import static ru.momo.monitoring.exceptions.user.UserBadRequestException.userBadRequestExceptionSupplier;
+import static ru.momo.monitoring.exceptions.user.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +30,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository
                 .findById(id)
                 .orElseThrow(
-                        userBadRequestExceptionSupplier("User with id = %d is not found", id)
+                        resourceNotFoundExceptionSupplier("User with id = %d is not found", id)
                 );
 
         //user и так существует, поэтому сразу вызываю метод get()
@@ -69,7 +69,7 @@ public class UserServiceImpl implements UserService {
         User updatedUser = userRepository
                 .findByUsername(request.getOldUsername())
                 .orElseThrow(
-                        userBadRequestExceptionSupplier(
+                        resourceNotFoundExceptionSupplier(
                                 "User with username = %s is not exist", request.getOldUsername()
                         )
                 );
@@ -91,7 +91,7 @@ public class UserServiceImpl implements UserService {
         User deletedUser = userRepository
                 .findById(id)
                 .orElseThrow(
-                        userBadRequestExceptionSupplier(
+                        resourceNotFoundExceptionSupplier(
                                 "User with id = %d is not exist", id
                         )
                 );
