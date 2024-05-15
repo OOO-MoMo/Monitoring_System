@@ -18,7 +18,7 @@ public class TechnicServiceImpl implements TechnicService {
         Technic technic = technicRepository
                 .findById(id)
                 .orElseThrow(
-                    resourceNotFoundExceptionSupplier("КУ ПРИВЕТ ГОЙДА!!!")
+                    resourceNotFoundExceptionSupplier("Technic with id = %d is not exist", id)
                 );
 
         return TechnicResponseDto.mapFromEntity(technic);
