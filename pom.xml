@@ -2,33 +2,35 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>ru.momo</groupId>
+	<artifactId>monitoring</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<description>Practice project for Globus</description>
+
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.2.5</version>
 		<relativePath/>
 	</parent>
-	<groupId>ru.momo</groupId>
-	<artifactId>monitoring</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<description>Practice project for Globus</description>
+
 	<properties>
 		<java.version>20</java.version>
 		<lombok.version>1.18.30</lombok.version>
-		<mapstruct.version>1.5.3.Final</mapstruct.version>
 		<jakarta-validation.version>3.0.2</jakarta-validation.version>
 		<hibernate-validator.version>8.0.1.Final</hibernate-validator.version>
 		<jjwt.version>0.11.5</jjwt.version>
+		<postgresql.version>42.6.0</postgresql.version>
 	</properties>
 	<dependencies>
+
+		<!--Starters-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
@@ -44,11 +46,15 @@
 			<artifactId>spring-boot-configuration-processor</artifactId>
 		</dependency>
 
+		<!--Database-->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
+			<version>${postgresql.version}</version>
 		</dependency>
+
+		<!--lombok-->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -56,18 +62,14 @@
 			<optional>true</optional>
 		</dependency>
 
-		<dependency>
-			<groupId>org.mapstruct</groupId>
-			<artifactId>mapstruct</artifactId>
-			<version>${mapstruct.version}</version>
-		</dependency>
-
+		<!--jakarta-validation-->
 		<dependency>
 			<groupId>jakarta.validation</groupId>
 			<artifactId>jakarta.validation-api</artifactId>
 			<version>${jakarta-validation.version}</version>
 		</dependency>
 
+		<!--hibernate-validator-->
 		<dependency>
 			<groupId>org.hibernate.validator</groupId>
 			<artifactId>hibernate-validator</artifactId>
@@ -93,12 +95,6 @@
 			<artifactId>jjwt-jackson</artifactId>
 			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
