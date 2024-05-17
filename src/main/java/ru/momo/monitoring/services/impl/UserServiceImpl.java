@@ -1,6 +1,7 @@
 package ru.momo.monitoring.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.momo.monitoring.exceptions.user.UserBadRequestException;
 import ru.momo.monitoring.services.UserService;
@@ -9,12 +10,14 @@ import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserUpdateResponseDto;
+import ru.momo.monitoring.store.entities.Role;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
 import ru.momo.monitoring.store.repositories.UserDataRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
 
 import java.util.Objects;
+import java.util.Set;
 
 import static ru.momo.monitoring.exceptions.user.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
@@ -22,6 +25,7 @@ import static ru.momo.monitoring.exceptions.user.ResourceNotFoundException.resou
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final UserDataRepository userDataRepository;
 
@@ -40,6 +44,24 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User getByIdEntity(Long id) {
+        return userRepository
+                .findById(id)
+                .orElseThrow(
+                        resourceNotFoundExceptionSupplier("User with id = %d is not found", id)
+                );
+    }
+
+    @Override
+    public User getByUsername(String username) {
+        return userRepository
+                .findByUsername(username)
+                .orElseThrow(
+                        resourceNotFoundExceptionSupplier("User with username = %s is not found", username)
+                );
+    }
+
+    @Override
     public UserCreatedResponseDto create(UserCreateRequestDto request) {
         User user = UserCreateRequestDto.mapToUserEntity(request);
 
@@ -51,6 +73,9 @@ public class UserServiceImpl implements UserService {
             throw new UserBadRequestException("Password and password confirmation do not match");
         }
 
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        Set<Role> roles = Set.of(new Role(2L, "ROLE_USER"));
+        user.setRoles(roles);
         UserData data = UserCreateRequestDto.mapToUserDataEntity(request);
         user.setUserData(data);
         data.setUser(user);

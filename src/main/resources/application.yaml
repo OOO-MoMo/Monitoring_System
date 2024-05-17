@@ -12,3 +12,9 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+security:
+  jwt:
+    secret: c2VsZ25kZmxrbi4geGFzZGdqZXJ3Z25sZGZ2LixjbmJvZHJzW11ma2pkbmNrLnZuYmdqO3Nsbix4bGt2am5rbXZkemtudm1zc2ZnZnNmc25zZGZkZmZzZnNkZmZzZGZzZA==
+    access: 3600000
+    refresh: 2592000000
