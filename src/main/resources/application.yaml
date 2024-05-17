@@ -2,6 +2,10 @@
 server:
   port: 8080
 
+application:
+  name: "Monitoring System"
+  version: 1.0
+
 spring:
   config:
     import: optional:file:.env[.properties]
