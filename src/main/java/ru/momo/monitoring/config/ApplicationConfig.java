@@ -27,6 +27,10 @@ public class ApplicationConfig {
 
     private final JwtTokenProvider tokenProvider;
 
+    private final String[] WHITE_LIST_URL = {
+            "/api/v1/auth/**"
+    };
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -37,6 +41,7 @@ public class ApplicationConfig {
         return authenticationConfiguration.getAuthenticationManager();
     }
 
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
@@ -46,7 +51,7 @@ public class ApplicationConfig {
                         httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(configurer ->
-                        configurer.requestMatchers("/api/v1/auth/**").permitAll()
+                        configurer.requestMatchers(WHITE_LIST_URL).permitAll()
                                 .anyRequest().authenticated()
                 )
                 .exceptionHandling(configurer ->

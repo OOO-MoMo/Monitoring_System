@@ -14,11 +14,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
+import ru.momo.monitoring.exceptions.user.AccessDeniedException;
 import ru.momo.monitoring.services.JwtProperties;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.response.JwtResponse;
-import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.entities.Role;
+import ru.momo.monitoring.store.entities.User;
 
 import java.security.Key;
 import java.util.Date;
@@ -107,9 +108,9 @@ public class JwtTokenProvider {
             throw new AccessDeniedException();
         }
         Long userId = Long.valueOf(getId(refreshToken));
-        UserResponseDto user = userService.getById(userId);
+        User user = userService.getByIdEntity(userId);
         return JwtResponse.builder()
-                .id(user.getId())
+                .id(user.getUserId())
                 .username(user.getUsername())
                 .accessToken(createAccessToken(userId, user.getUsername(), user.getRoles()))
                 .refreshToken(createRefreshToken(userId, user.getUsername()))

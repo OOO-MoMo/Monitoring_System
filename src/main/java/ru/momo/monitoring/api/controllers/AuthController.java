@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.momo.monitoring.services.AuthService;
+import ru.momo.monitoring.store.dto.request.JwtRequest;
+import ru.momo.monitoring.store.dto.request.RefreshJwtRequest;
 import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
 
 @RestController
@@ -26,6 +28,20 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(authService.register(request));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody @Validated JwtRequest loginRequest){
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(authService.login(loginRequest));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody RefreshJwtRequest refreshToken){
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(authService.refresh(refreshToken));
     }
 
 }

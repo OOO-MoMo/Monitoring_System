@@ -14,6 +14,9 @@ public interface UserService {
     UserResponseDto getById(Long id);
 
     @Transactional(readOnly = true)
+    User getByIdEntity(Long id);
+
+    @Transactional(readOnly = true)
     User getByUsername(String username);
 
     @Transactional(readOnly = false)
