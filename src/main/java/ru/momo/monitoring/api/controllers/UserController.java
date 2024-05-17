@@ -6,12 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.momo.monitoring.services.UserService;
-import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
-import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.UserUpdateResponseDto;
-
-import java.net.URI;
 
 @RestController
 @RequiredArgsConstructor
@@ -25,14 +21,6 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(userService.getById(id));
-    }
-
-    @PostMapping("/")
-    public ResponseEntity<?> addNewUser(@RequestBody @Validated UserCreateRequestDto request) {
-        UserCreatedResponseDto response = userService.create(request);
-        return ResponseEntity
-                .created(URI.create("/api/v1/users/" + response.getUserId()))
-                .body(response);
     }
 
     @PutMapping("/")
