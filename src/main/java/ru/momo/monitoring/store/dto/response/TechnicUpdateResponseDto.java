@@ -1,28 +1,23 @@
 package ru.momo.monitoring.store.dto.response;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import ru.momo.monitoring.store.entities.Technic;
 
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class TechnicResponseDto {
-    String username;
+public class TechnicUpdateResponseDto {
     String brand;
     String model;
-    Long technicId;
-    public static TechnicResponseDto mapFromEntity(Technic technic) {
-        return TechnicResponseDto
+
+    public static TechnicUpdateResponseDto mapFromEntity(Technic technic) {
+        return TechnicUpdateResponseDto
                 .builder()
-                .technicId(technic.getTechnicId())
-                .username(technic.getOwnerId().getUsername())
                 .brand(technic.getBrand())
                 .model(technic.getModel())
                 .build();
     }
-
-
 }

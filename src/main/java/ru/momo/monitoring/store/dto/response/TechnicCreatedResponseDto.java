@@ -3,26 +3,27 @@ package ru.momo.monitoring.store.dto.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import ru.momo.monitoring.store.entities.Technic;
+import ru.momo.monitoring.store.entities.User;
+
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class TechnicResponseDto {
-    String username;
-    String brand;
-    String model;
+public class TechnicCreatedResponseDto {
     Long technicId;
-    public static TechnicResponseDto mapFromEntity(Technic technic) {
-        return TechnicResponseDto
+    Long ownerId;
+    String model;
+    String brand;
+
+    public static TechnicCreatedResponseDto MapFromEntity(Technic technic, User owner) {
+        return TechnicCreatedResponseDto
                 .builder()
                 .technicId(technic.getTechnicId())
-                .username(technic.getOwnerId().getUsername())
-                .brand(technic.getBrand())
+                .ownerId(owner.getUserId())
                 .model(technic.getModel())
+                .brand(technic.getBrand())
                 .build();
     }
-
-
 }
