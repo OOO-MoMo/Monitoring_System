@@ -1,18 +1,20 @@
 package ru.momo.monitoring.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import ru.momo.monitoring.exceptions.user.UserBadRequestException;
+import ru.momo.monitoring.exceptions.user.ResourceNotFoundException;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
-import ru.momo.monitoring.store.dto.response.*;
+import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.repositories.TechnicRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
-
-import java.util.Objects;
 
 import static ru.momo.monitoring.exceptions.user.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
@@ -21,30 +23,41 @@ import static ru.momo.monitoring.exceptions.user.ResourceNotFoundException.resou
 public class TechnicServiceImpl implements TechnicService {
     private final TechnicRepository technicRepository;
     private final UserRepository userRepository;
+
     @Override
     public TechnicResponseDto getTechById(Long id) {
         Technic technic = technicRepository
                 .findById(id)
                 .orElseThrow(
-                    resourceNotFoundExceptionSupplier("Technic with id = %d is not exist", id)
+                        resourceNotFoundExceptionSupplier("Technic with id = %d is not exist", id)
                 );
 
         return TechnicResponseDto.mapFromEntity(technic);
     }
 
     @Override
-    public TechnicResponseDto getTechByUserId(Long id) {
-        User owner = userRepository.findById(id)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("User with id = %d is not exist", id)
-                );
-        Technic technic = technicRepository
-                .findByOwnerId(owner)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("Technic with user id = %d is not exist", id)
-                );
+    public Page<TechnicResponseDto> getTechByUserId(Long userId,
+                                                    Pageable pageable,
+                                                    String brand,
+                                                    String model) {
+        if (userRepository.existsById(userId)) {
+            Page<Technic> response = technicRepository.findAllByOwnerIdUserIdAndBrandContainingIgnoreCaseAndModelContainingIgnoreCase(
+                    userId,
+                    brand,
+                    model,
+                    pageable
+            );
 
-        return TechnicResponseDto.mapFromEntity(technic);
+            if (response.isEmpty()) {
+                throw new ResourceNotFoundException(
+                        "Nothing was found on page number %d", pageable.getPageNumber()
+                );
+            }
+
+            return response.map(TechnicResponseDto::mapFromEntity);
+        } else {
+            throw new ResourceNotFoundException("User with id = %d is not exist", userId);
+        }
     }
 
     @Override

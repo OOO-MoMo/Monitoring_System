@@ -1,9 +1,13 @@
 package ru.momo.monitoring.services;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
-import ru.momo.monitoring.store.dto.response.*;
+import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
 public interface TechnicService {
     @Transactional(readOnly = true)
@@ -19,5 +23,5 @@ public interface TechnicService {
     void delete(Long id);
 
     @Transactional(readOnly = true)
-    TechnicResponseDto getTechByUserId(Long id);
+    Page<TechnicResponseDto> getTechByUserId(Long id, Pageable pageable, String brand, String model);
 }
