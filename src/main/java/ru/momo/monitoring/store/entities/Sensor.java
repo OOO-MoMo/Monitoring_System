@@ -19,9 +19,6 @@ public class Sensor {
     @Column(name = "type")
     String type;
 
-    @Column(name = "data")
-    String data;
-
     @Column(name = "data_type")
     String dataType;
 

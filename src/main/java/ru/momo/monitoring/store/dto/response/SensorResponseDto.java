@@ -12,13 +12,12 @@ import ru.momo.monitoring.store.entities.Sensor;
 public class SensorResponseDto {
 
     String type;
-    String data;
+
     String dataType;
 
     public static SensorResponseDto mapFromEntity(Sensor sensor) {
         return SensorResponseDto.builder()
                 .type(sensor.getType())
-                .data(sensor.getData())
                 .dataType(sensor.getDataType())
                 .build();
     }

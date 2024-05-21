@@ -24,7 +24,6 @@ public class SensorCreateRequestDto {
     public static Sensor mapToEntity(SensorCreateRequestDto request) {
         return Sensor
                 .builder()
-                .data("0")
                 .type(request.getType())
                 .dataType(request.getDataType())
                 .build();
