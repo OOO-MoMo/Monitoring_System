@@ -23,7 +23,7 @@ public class UserCreatedResponseDto {
 
     String phoneNumber;
 
-    public static UserCreatedResponseDto MapFromEntity(User user, UserData data) {
+    public static UserCreatedResponseDto mapFromEntity(User user, UserData data) {
         return UserCreatedResponseDto
                 .builder()
                 .userId(user.getUserId())

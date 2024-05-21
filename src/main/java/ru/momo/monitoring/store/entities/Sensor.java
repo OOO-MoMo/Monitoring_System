@@ -20,6 +20,9 @@ public class Sensor {
     String type;
 
     @Column(name = "data")
-    Double data;
+    String data;
+
+    @Column(name = "data_type")
+    String dataType;
 
 }
