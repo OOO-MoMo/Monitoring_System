@@ -3,6 +3,8 @@ package ru.momo.monitoring.store.entities;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Set;
+
 @Setter
 @Getter
 @Builder
@@ -19,7 +21,10 @@ public class Sensor {
     @Column(name = "type")
     String type;
 
-    @Column(name = "data")
-    Double data;
+    @Column(name = "data_type")
+    String dataType;
+
+    @ManyToMany(mappedBy = "sensors")
+    private Set<Technic> technics;
 
 }

@@ -8,10 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.momo.monitoring.exceptions.user.AccessDeniedException;
-import ru.momo.monitoring.exceptions.user.ExceptionBody;
-import ru.momo.monitoring.exceptions.user.ResourceNotFoundException;
-import ru.momo.monitoring.exceptions.user.UserBadRequestException;
+import ru.momo.monitoring.exceptions.user.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +25,12 @@ public class ControllerAdvice {
     @ExceptionHandler(UserBadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ExceptionBody handleUserBadRequestException(UserBadRequestException e) {
+        return new ExceptionBody(e.getMessage());
+    }
+
+    @ExceptionHandler(SensorBadRequestException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ExceptionBody handleSensorBadRequestException(SensorBadRequestException e) {
         return new ExceptionBody(e.getMessage());
     }
 

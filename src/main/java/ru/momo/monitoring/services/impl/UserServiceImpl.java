@@ -80,7 +80,7 @@ public class UserServiceImpl implements UserService {
         user.setUserData(data);
         data.setUser(user);
         userRepository.save(user);
-        return UserCreatedResponseDto.MapFromEntity(user, data);
+        return UserCreatedResponseDto.mapFromEntity(user, data);
     }
 
     /*Пока что изменяю только username
