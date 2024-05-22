@@ -43,8 +43,8 @@ public class SensorServiceImpl implements SensorService {
     }
 
     @Override
-    public SensorToTechnicResponseDto addSensorToTechnic(SensorToTechnicRequestDto request) {
-        Sensor newSensor = getSensor(request.getSensorId());
+    public SensorToTechnicResponseDto actionSensorToTechnic(SensorToTechnicRequestDto request) {
+        Sensor sensor = getSensor(request.getSensorId());
 
         Technic technic = technicRepository
                 .findById(request.getTechnicId())
@@ -55,21 +55,43 @@ public class SensorServiceImpl implements SensorService {
         boolean isSensorExist = technic
                 .getSensors()
                 .stream()
-                .anyMatch(sensor -> sensor.equals(newSensor));
+                .anyMatch(e -> e.equals(sensor));
 
-        if (isSensorExist) {
+        if (request.getAction().equals(SensorToTechnicRequestDto.ATTACH)) {
+            attachSensorToTechnic(sensor, technic, isSensorExist);
+        } else {
+            unpinSensorFromTechnic(sensor, technic, isSensorExist);
+        }
+
+        return new SensorToTechnicResponseDto(request);
+    }
+
+    private void unpinSensorFromTechnic(Sensor sensor, Technic technic, boolean isSensorExist) {
+        if (!isSensorExist) {
             throw new SensorBadRequestException(
-                    "Technic with id = %d is already have sensor with id = %d ",
-                    request.getTechnicId(),
-                    request.getSensorId()
+                    "Technic with id = %d have not sensor with id = %d ",
+                    technic.getTechnicId(),
+                    sensor.getSensorId()
             );
         }
 
-        technic.getSensors().add(newSensor);
+        technic.getSensors().remove(sensor);
 
         technicRepository.save(technic);
+    }
 
-        return new SensorToTechnicResponseDto(request);
+    private void attachSensorToTechnic(Sensor sensor, Technic technic, boolean isSensorExist) {
+        if (isSensorExist) {
+            throw new SensorBadRequestException(
+                    "Technic with id = %d is already have sensor with id = %d ",
+                    technic.getTechnicId(),
+                    sensor.getSensorId()
+            );
+        }
+
+        technic.getSensors().add(sensor);
+
+        technicRepository.save(technic);
     }
 
     @Override

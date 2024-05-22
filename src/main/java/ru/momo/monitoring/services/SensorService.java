@@ -18,7 +18,7 @@ public interface SensorService {
     SensorCreatedResponseDto create(SensorCreateRequestDto request);
 
     @Transactional(readOnly = false)
-    SensorToTechnicResponseDto addSensorToTechnic(SensorToTechnicRequestDto request);
+    SensorToTechnicResponseDto actionSensorToTechnic(SensorToTechnicRequestDto request);
 
     @Transactional(readOnly = true)
     List<SensorResponseDto> getSensorByTechnicId(Long technicId);

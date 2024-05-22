@@ -15,8 +15,11 @@ public class SensorToTechnicResponseDto {
 
     Long technicId;
 
+    String action;
+
     public SensorToTechnicResponseDto(SensorToTechnicRequestDto request) {
         this.sensorId = request.getSensorId();
         this.technicId = request.getTechnicId();
+        this.action = "Was " + request.getAction() + "ed";
     }
 }

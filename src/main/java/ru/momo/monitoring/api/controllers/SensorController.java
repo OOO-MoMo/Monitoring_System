@@ -54,8 +54,8 @@ public class SensorController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<?> addSensorToTechnic(@RequestBody @Validated SensorToTechnicRequestDto request) {
-        SensorToTechnicResponseDto response = sensorService.addSensorToTechnic(request);
+    public ResponseEntity<?> actionSensorToTechnic(@RequestBody @Validated SensorToTechnicRequestDto request) {
+        SensorToTechnicResponseDto response = sensorService.actionSensorToTechnic(request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
