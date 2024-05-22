@@ -7,9 +7,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.momo.monitoring.services.SensorService;
 import ru.momo.monitoring.store.dto.request.SensorCreateRequestDto;
+import ru.momo.monitoring.store.dto.request.SensorToTechnicRequestDto;
 import ru.momo.monitoring.store.dto.response.SensorCreatedResponseDto;
+import ru.momo.monitoring.store.dto.response.SensorResponseDto;
+import ru.momo.monitoring.store.dto.response.SensorToTechnicResponseDto;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -25,6 +29,22 @@ public class SensorController {
                 .body(sensorService.getSensorById(id));
     }
 
+    @GetMapping("/")
+    public ResponseEntity<?> getByTechnicId(
+            @RequestParam(name = "technicId") Long technicId) {
+        List<SensorResponseDto> response = sensorService.getSensorByTechnicId(technicId);
+
+        if (response.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NO_CONTENT)
+                    .build();
+        } else {
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(response);
+        }
+    }
+
     @PostMapping("/")
     public ResponseEntity<?> addNewSensor(@RequestBody @Validated SensorCreateRequestDto request) {
         SensorCreatedResponseDto response = sensorService.create(request);
@@ -32,4 +52,11 @@ public class SensorController {
                 .created(URI.create("/api/v1/sensors/" + response.getSensorId()))
                 .body(response);
     }
+
+    @PutMapping("/")
+    public ResponseEntity<?> addSensorToTechnic(@RequestBody @Validated SensorToTechnicRequestDto request) {
+        SensorToTechnicResponseDto response = sensorService.addSensorToTechnic(request);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
 }
