@@ -23,4 +23,6 @@ public interface SensorService {
     @Transactional(readOnly = true)
     List<SensorResponseDto> getSensorByTechnicId(Long technicId);
 
+    @Transactional(readOnly = false)
+    void delete(Long id);
 }

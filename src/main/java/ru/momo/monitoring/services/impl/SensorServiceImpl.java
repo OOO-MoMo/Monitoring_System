@@ -105,6 +105,18 @@ public class SensorServiceImpl implements SensorService {
                 : null;
     }
 
+    @Override
+    public void delete(Long id) {
+        Sensor deletedSensor = sensorRepository
+                .findById(id)
+                .orElseThrow(
+                        resourceNotFoundExceptionSupplier(
+                                "Sensor with id = %d is not exist", id
+                        )
+                );
+        sensorRepository.delete(deletedSensor);
+    }
+
     private Sensor getSensor(Long id) {
         return sensorRepository
                 .findById(id)
