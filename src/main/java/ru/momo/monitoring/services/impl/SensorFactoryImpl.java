@@ -7,22 +7,40 @@ import ru.momo.monitoring.store.entities.sensor.FuelSensor;
 import ru.momo.monitoring.store.entities.sensor.PressureSensor;
 import ru.momo.monitoring.store.entities.sensor.SpeedometerSensor;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
+
 public class SensorFactoryImpl implements SensorFactory {
+
+    private final Map<String, Supplier<AbstractSensor>> sensorRegistry;
+
+    {
+        sensorRegistry = new HashMap<>();
+    }
+
+    public SensorFactoryImpl() {
+        registerSensor("speedometer", SpeedometerSensor::new);
+        registerSensor("fuel_sensor", FuelSensor::new);
+        registerSensor("pressure_sensor", PressureSensor::new);
+    }
+
+    @Override
+    public void registerSensor(String sensorType, Supplier<AbstractSensor> sensorSupplier) {
+        sensorRegistry.put(sensorType, sensorSupplier);
+    }
 
     @Override
     public AbstractSensor getSensor(String sensorType) {
-        AbstractSensor sensor;
+        Supplier<AbstractSensor> sensorSupplier = sensorRegistry.get(sensorType);
 
-        switch (sensorType) {
-            case "speedometer" -> sensor = new SpeedometerSensor();
-            case "fuel_sensor" -> sensor = new FuelSensor();
-            case "pressure_sensor" -> sensor = new PressureSensor();
-            default -> throw new SensorNotCreatedException(
+        if (sensorSupplier != null) {
+            return sensorSupplier.get();
+        } else {
+            throw new SensorNotCreatedException(
                     "Sensor : %s is not defined in server", sensorType
             );
         }
-
-        return sensor;
     }
 
 }
