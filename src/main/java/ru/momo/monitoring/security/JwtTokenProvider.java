@@ -15,7 +15,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import ru.momo.monitoring.exceptions.AccessDeniedException;
-import ru.momo.monitoring.services.JwtProperties;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.response.JwtResponse;
 import ru.momo.monitoring.store.entities.Role;

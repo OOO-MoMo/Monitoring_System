@@ -1,11 +1,11 @@
-package ru.momo.monitoring.services;
+package ru.momo.monitoring.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import ru.momo.monitoring.security.JwtEntityFactory;
+import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.entities.User;
 
 @Service
