@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import ru.momo.monitoring.exceptions.user.ResourceNotFoundException;
+import ru.momo.monitoring.exceptions.ResourceNotFoundException;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
@@ -16,7 +16,7 @@ import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.repositories.TechnicRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
 
-import static ru.momo.monitoring.exceptions.user.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
+import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
 @Service
 @RequiredArgsConstructor

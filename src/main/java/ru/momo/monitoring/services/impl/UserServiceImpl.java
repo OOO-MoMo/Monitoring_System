@@ -3,7 +3,7 @@ package ru.momo.monitoring.services.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import ru.momo.monitoring.exceptions.user.UserBadRequestException;
+import ru.momo.monitoring.exceptions.UserBadRequestException;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
@@ -19,7 +19,7 @@ import ru.momo.monitoring.store.repositories.UserRepository;
 import java.util.Objects;
 import java.util.Set;
 
-import static ru.momo.monitoring.exceptions.user.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
+import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
 @Service
 @RequiredArgsConstructor
