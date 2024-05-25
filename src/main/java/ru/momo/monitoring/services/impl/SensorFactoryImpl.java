@@ -1,5 +1,6 @@
 package ru.momo.monitoring.services.impl;
 
+import org.springframework.stereotype.Service;
 import ru.momo.monitoring.exceptions.SensorNotCreatedException;
 import ru.momo.monitoring.services.SensorFactory;
 import ru.momo.monitoring.store.entities.sensor.AbstractSensor;
@@ -11,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+@Service
 public class SensorFactoryImpl implements SensorFactory {
 
     private final Map<String, Supplier<AbstractSensor>> sensorRegistry;

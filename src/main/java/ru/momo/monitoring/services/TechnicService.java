@@ -6,10 +6,12 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
 public interface TechnicService {
+
     @Transactional(readOnly = true)
     TechnicResponseDto getTechById(Long id);
 
@@ -24,4 +26,8 @@ public interface TechnicService {
 
     @Transactional(readOnly = true)
     Page<TechnicResponseDto> getTechByUserId(Long id, Pageable pageable, String brand, String model);
+
+    @Transactional(readOnly = true)
+    TechnicDataResponseDto getSensorsData(Long id);
+
 }
