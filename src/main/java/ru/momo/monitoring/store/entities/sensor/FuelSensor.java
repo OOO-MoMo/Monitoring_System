@@ -9,7 +9,9 @@ public class FuelSensor extends AbstractSensor{
     @Override
     public String calculateData() {
         return "Current fuel balance : " +
-                (MIN_VALUE + (MAX_VALUE - MIN_VALUE) * random.nextDouble())
+                decimalFormat.format(
+                        MIN_VALUE + (MAX_VALUE - MIN_VALUE) * random.nextDouble()
+                )
                 + " %";
     }
 

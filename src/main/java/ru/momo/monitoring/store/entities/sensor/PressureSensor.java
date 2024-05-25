@@ -9,7 +9,9 @@ public class PressureSensor extends AbstractSensor {
     @Override
     public String calculateData() {
         return "Current pressure is: " +
-                (MIN_VALUE + (MAX_VALUE - MIN_VALUE) * random.nextDouble())
+                decimalFormat.format(
+                        MIN_VALUE + (MAX_VALUE - MIN_VALUE) * random.nextDouble()
+                )
                 + " PMa";
     }
 
