@@ -1,4 +1,4 @@
-package ru.momo.monitoring.services;
+package ru.momo.monitoring.security;
 
 import lombok.AccessLevel;
 import lombok.Data;

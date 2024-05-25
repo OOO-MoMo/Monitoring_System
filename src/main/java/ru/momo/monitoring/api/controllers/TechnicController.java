@@ -11,6 +11,7 @@ import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
@@ -79,6 +80,14 @@ public class TechnicController {
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
                 .build();
+    }
+
+    @GetMapping("/data/{id}")
+    public ResponseEntity<?> getSensorsData(@PathVariable Long id) {
+        TechnicDataResponseDto response = technicService.getSensorsData(id);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(response);
     }
 
 }

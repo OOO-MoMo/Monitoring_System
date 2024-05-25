@@ -1,4 +1,4 @@
-package ru.momo.monitoring.exceptions.user;
+package ru.momo.monitoring.exceptions;
 
 import java.util.function.Supplier;
 

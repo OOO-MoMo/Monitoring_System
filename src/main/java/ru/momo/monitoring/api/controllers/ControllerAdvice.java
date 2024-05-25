@@ -8,7 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.momo.monitoring.exceptions.user.*;
+import ru.momo.monitoring.exceptions.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,6 +48,12 @@ public class ControllerAdvice {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ExceptionBody handleAuthentication() {
         return new ExceptionBody("Authentication failed");
+    }
+
+    @ExceptionHandler(SensorNotCreatedException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ExceptionBody handleSensorNotCreatedException(SensorNotCreatedException e) {
+        return new ExceptionBody(e.getMessage());
     }
 
     @ExceptionHandler({AccessDeniedException.class, org.springframework.security.access.AccessDeniedException.class})

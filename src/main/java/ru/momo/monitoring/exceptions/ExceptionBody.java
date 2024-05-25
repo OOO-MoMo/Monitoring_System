@@ -1,4 +1,4 @@
-package ru.momo.monitoring.exceptions.user;
+package ru.momo.monitoring.exceptions;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

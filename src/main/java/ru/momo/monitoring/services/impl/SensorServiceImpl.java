@@ -2,7 +2,7 @@ package ru.momo.monitoring.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.momo.monitoring.exceptions.user.SensorBadRequestException;
+import ru.momo.monitoring.exceptions.SensorBadRequestException;
 import ru.momo.monitoring.services.SensorService;
 import ru.momo.monitoring.store.dto.request.SensorCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.SensorToTechnicRequestDto;
@@ -16,7 +16,7 @@ import ru.momo.monitoring.store.repositories.TechnicRepository;
 
 import java.util.List;
 
-import static ru.momo.monitoring.exceptions.user.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
+import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
 @Service
 @RequiredArgsConstructor
