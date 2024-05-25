@@ -50,6 +50,12 @@ public class ControllerAdvice {
         return new ExceptionBody("Authentication failed");
     }
 
+    @ExceptionHandler(SensorNotCreatedException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ExceptionBody handleSensorNotCreatedException(SensorNotCreatedException e) {
+        return new ExceptionBody(e.getMessage());
+    }
+
     @ExceptionHandler({AccessDeniedException.class, org.springframework.security.access.AccessDeniedException.class})
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ExceptionBody handleAccessDenied() {
