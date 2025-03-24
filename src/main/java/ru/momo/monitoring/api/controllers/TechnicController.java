@@ -6,7 +6,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
@@ -16,6 +24,7 @@ import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
 import java.net.URI;
+import java.util.UUID;
 
 
 @RestController
@@ -34,7 +43,7 @@ public class TechnicController {
 
     @GetMapping("/")
     public ResponseEntity<?> getByUserId(
-            @RequestParam(name = "userId") Long userId,
+            @RequestParam(name = "userId") UUID userId,
             @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
             @RequestParam(name = "offset", required = false, defaultValue = "20") Integer offset,
             @RequestParam(name = "brand", required = false, defaultValue = "") String brand,

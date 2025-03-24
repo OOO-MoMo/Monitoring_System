@@ -17,16 +17,14 @@ import org.springframework.stereotype.Service;
 import ru.momo.monitoring.exceptions.AccessDeniedException;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.response.JwtResponse;
-import ru.momo.monitoring.store.entities.Role;
 import ru.momo.monitoring.store.entities.User;
+import ru.momo.monitoring.store.entities.enums.RoleName;
 
 import java.security.Key;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -36,17 +34,17 @@ public class JwtTokenProvider {
     final JwtProperties jwtProperties;
     final UserDetailsService userDetailsService;
     final UserService userService;
-    private Key key;
+    Key key;
 
     @PostConstruct
     public void init(){
         this.key = Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes());
     }
 
-    public String createAccessToken(Long userId, String username, Set<Role> roles){
+    public String createAccessToken(UUID userId, String username, RoleName role) {
         Claims claims = Jwts.claims().setSubject(username);
         claims.put("id", userId);
-        claims.put("roles", resolveRoles(roles));
+        claims.put("role", role.toString());
         Instant validity = Instant.now().plus(jwtProperties.getAccess(), ChronoUnit.HOURS);
         return Jwts.builder()
                 .setClaims(claims)
@@ -55,13 +53,7 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    private List<String> resolveRoles(Set<Role> roles){
-        return roles.stream()
-                .map(Role::getRole)
-                .collect(Collectors.toList());
-    }
-
-    public String createRefreshToken(Long userId, String username){
+    public String createRefreshToken(UUID userId, String username) {
         Claims claims = Jwts.claims().setSubject(username);
         claims.put("id", userId);
         Instant validity = Instant.now().plus(jwtProperties.getRefresh(), ChronoUnit.DAYS);
@@ -104,13 +96,13 @@ public class JwtTokenProvider {
         if(!validateToken(refreshToken)){
             throw new AccessDeniedException();
         }
-        Long userId = Long.valueOf(getId(refreshToken));
+        UUID userId = UUID.fromString(getId(refreshToken));
         User user = userService.getByIdEntity(userId);
         return JwtResponse.builder()
-                .id(user.getUserId())
-                .username(user.getUsername())
-                .accessToken(createAccessToken(userId, user.getUsername(), user.getRoles()))
-                .refreshToken(createRefreshToken(userId, user.getUsername()))
+                .id(user.getId())
+                .username(user.getEmail())
+                .accessToken(createAccessToken(userId, user.getEmail(), user.getRole()))
+                .refreshToken(createRefreshToken(userId, user.getEmail()))
                 .build();
     }
 

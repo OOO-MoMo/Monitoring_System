@@ -3,21 +3,24 @@ package ru.momo.monitoring.services.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.exceptions.UserBadRequestException;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
+import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserUpdateResponseDto;
-import ru.momo.monitoring.store.entities.Role;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
+import ru.momo.monitoring.store.entities.enums.RoleName;
 import ru.momo.monitoring.store.repositories.UserDataRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
 
+import java.util.ArrayList;
 import java.util.Objects;
-import java.util.Set;
+import java.util.UUID;
 
 import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
@@ -30,7 +33,8 @@ public class UserServiceImpl implements UserService {
     private final UserDataRepository userDataRepository;
 
     @Override
-    public UserResponseDto getById(Long id) {
+    @Transactional(readOnly = true)
+    public UserResponseDto getById(UUID id) {
         User user = userRepository
                 .findById(id)
                 .orElseThrow(
@@ -44,7 +48,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getByIdEntity(Long id) {
+    @Transactional(readOnly = true)
+    public User getByIdEntity(UUID id) {
         return userRepository
                 .findById(id)
                 .orElseThrow(
@@ -53,20 +58,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getByUsername(String username) {
+    @Transactional(readOnly = true)
+    public User getByEmail(String email) {
         return userRepository
-                .findByUsername(username)
+                .findByEmail(email)
                 .orElseThrow(
-                        resourceNotFoundExceptionSupplier("User with username = %s is not found", username)
+                        resourceNotFoundExceptionSupplier("User with email = %s is not found", email)
                 );
     }
 
     @Override
+    @Transactional
     public UserCreatedResponseDto create(UserCreateRequestDto request) {
         User user = UserCreateRequestDto.mapToUserEntity(request);
 
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            throw new UserBadRequestException("User with name %s already exists", user.getUsername());
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new UserBadRequestException("User with email %s already exists", user.getEmail());
         }
 
         if (!request.getPassword().equals(request.getPasswordConfirmation())) {
@@ -74,8 +81,7 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        Set<Role> roles = Set.of(new Role(2L, "ROLE_USER"));
-        user.setRoles(roles);
+        user.setRole(RoleName.ROLE_ADMIN);
         UserData data = UserCreateRequestDto.mapToUserDataEntity(request);
         user.setUserData(data);
         data.setUser(user);
@@ -86,13 +92,14 @@ public class UserServiceImpl implements UserService {
     /*Пока что изменяю только username
     В будущем можно изменять и другие поля тоже*/
     @Override
+    @Transactional
     public UserUpdateResponseDto update(UserUpdateRequestDto request) {
         if (Objects.equals(request.getOldUsername(), request.getNewUsername())) {
             throw new UserBadRequestException("You already have this username");
         }
 
         User updatedUser = userRepository
-                .findByUsername(request.getOldUsername())
+                .findByEmail(request.getOldUsername())
                 .orElseThrow(
                         resourceNotFoundExceptionSupplier(
                                 "User with username = %s is not exist", request.getOldUsername()
@@ -100,10 +107,10 @@ public class UserServiceImpl implements UserService {
                 );
 
         if (request.getNewUsername() != null) {
-            if (userRepository.findByUsername(request.getNewUsername()).isPresent()) {
+            if (userRepository.findByEmail(request.getNewUsername()).isPresent()) {
                 throw new UserBadRequestException("User with name %s already exists", request.getNewUsername());
             }
-            updatedUser.setUsername(request.getNewUsername());
+            updatedUser.setEmail(request.getNewUsername());
         }
 
         userRepository.save(updatedUser);
@@ -112,7 +119,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void delete(Long id) {
+    @Transactional
+    public void delete(UUID id) {
         User deletedUser = userRepository
                 .findById(id)
                 .orElseThrow(
@@ -121,6 +129,46 @@ public class UserServiceImpl implements UserService {
                         )
                 );
         userRepository.delete(deletedUser);
+    }
+
+    @Override
+    @Transactional
+    public User confirmUser(String email) {
+        User user = getByEmail(email);
+        user.setIsConfirmed(true);
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RoleName getNewUserRoleByCurrentUser(String username) {
+        User user = getByEmail(username);
+        RoleName currentUserRole = user.getRole();
+
+        return switch (currentUserRole) {
+            case ROLE_ADMIN -> RoleName.ROLE_MANAGER;
+            case ROLE_MANAGER -> RoleName.ROLE_DRIVER;
+            case ROLE_DRIVER -> throw new IllegalStateException("Водитель не может регистрировать пользователей");
+        };
+    }
+
+    @Override
+    @Transactional
+    public User saveNotConfirmedUser(RegisterRequest request, RoleName role) {
+        if (!request.password().equals(request.passwordConfirmation())) {
+            throw new UserBadRequestException("Пароли должны совпадать");
+        }
+
+        User user = new User();
+        user.setRole(role);
+        user.setPassword(passwordEncoder.encode(request.password()));
+        user.setEmail(request.email());
+
+        if (role.equals(RoleName.ROLE_DRIVER)) {
+            user.setTechnics(new ArrayList<>());
+        }
+
+        return userRepository.save(user);
     }
 
 }

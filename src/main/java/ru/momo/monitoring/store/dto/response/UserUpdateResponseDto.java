@@ -16,7 +16,7 @@ public class UserUpdateResponseDto {
     public static UserUpdateResponseDto mapFromEntity(User user) {
         return UserUpdateResponseDto
                 .builder()
-                .username(user.getUsername())
+                .username(user.getEmail())
                 .build();
     }
 

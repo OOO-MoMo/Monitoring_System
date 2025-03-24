@@ -2,7 +2,6 @@ package ru.momo.monitoring.store.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +9,8 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.validator.constraints.Length;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
-import ru.momo.monitoring.store.entities.UserData;
+
+import java.util.UUID;
 
 @Data
 @Builder
@@ -18,7 +18,7 @@ import ru.momo.monitoring.store.entities.UserData;
 public class TechnicCreateRequestDto {
     @NotNull(message = "Owner Id must be not null")
     @JsonProperty("ownerId")
-    Long ownerId;
+    UUID ownerId;
 
     @NotNull(message = "Model must be not null")
     @Length(max = 255, message = "Model length must be smaller than 255 symbols")

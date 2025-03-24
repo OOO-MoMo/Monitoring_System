@@ -1,60 +1,151 @@
-create table if not exists users
+-- Создаем таблицы заново с учетом новых требований
+CREATE TABLE IF NOT EXISTS users
 (
-    user_id bigserial primary key,
-    username varchar(255) not null unique,
-    password varchar(255) not null
-);
-
-create table if not exists roles
+    id
+    UUID
+    PRIMARY
+    KEY
+    DEFAULT
+    gen_random_uuid
 (
-    role_id bigserial primary key,
-    role varchar(255) not null unique
-);
-
-create table if not exists users_roles
+),
+    email VARCHAR
 (
-    user_id bigint not null,
-    roles_role_id bigint not null,
-    primary key (user_id, roles_role_id),
-    constraint fk_users_roles_users foreign key (user_id) references users (user_id) on delete cascade on update no action,
-    constraint fk_users_roles_roles foreign key (roles_role_id) references roles (role_id) on delete cascade on update no action
-);
-
-create table if not exists users_data
+    255
+) NOT NULL UNIQUE,
+    password VARCHAR
 (
-    users_data_id bigserial primary key,
-    user_id bigint not null unique,
-    phone_number varchar(255) not null,
-    firstname varchar(255) not null,
-    lastname varchar(255) not null,
-    patronymic varchar(255),
-    constraint fk_users_data_users foreign key (user_id) references users (user_id) on delete cascade on update no action
-);
-
-create table if not exists sensors
+    255
+) NOT NULL,
+    role VARCHAR
 (
-    sensor_id bigserial primary key,
-    data double precision,
-    type varchar(255) not null
-);
-
-create table if not exists technics
+    20
+) NOT NULL CHECK
 (
-    technic_id bigserial primary key,
-    user_id bigint not null,
-    brand varchar(255) not null,
-    model varchar(255),
-    constraint fk_technics_users foreign key (user_id) references users (user_id) on delete cascade on update no action
-);
-
-create table if not exists technics_sensors
+    role
+    IN
 (
-    technic_id bigint not null,
-    sensors_sensor_id bigint not null,
-    primary key (technic_id, sensors_sensor_id),
-    constraint fk_technics_sensors_technics foreign key (technic_id) references technics (technic_id) on delete cascade on update no action,
-    constraint fk_technics_sensors_sensors foreign key (sensors_sensor_id) references sensors (sensor_id) on delete cascade on update no action
-);
+    'ROLE_ADMIN',
+    'ROLE_MANAGER',
+    'ROLE_DRIVER'
+)),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_confirmed BOOLEAN NOT NULL DEFAULT false,
+    is_active BOOLEAN NOT NULL DEFAULT true
+    );
 
+CREATE TABLE IF NOT EXISTS users_data
+(
+    users_data_id
+    BIGSERIAL
+    PRIMARY
+    KEY,
+    user_id
+    UUID
+    NOT
+    NULL
+    UNIQUE,
+    phone_number
+    VARCHAR
+(
+    255
+) NOT NULL,
+    firstname VARCHAR
+(
+    255
+) NOT NULL,
+    lastname VARCHAR
+(
+    255
+) NOT NULL,
+    patronymic VARCHAR
+(
+    255
+),
+    CONSTRAINT fk_users_data_users FOREIGN KEY
+(
+    user_id
+) REFERENCES users
+(
+    id
+) ON DELETE CASCADE
+    );
 
+CREATE TABLE IF NOT EXISTS sensors
+(
+    sensor_id
+    BIGSERIAL
+    PRIMARY
+    KEY,
+    type
+    VARCHAR
+(
+    255
+) NOT NULL,
+    data_type VARCHAR
+(
+    255
+) NOT NULL
+    );
 
+CREATE TABLE IF NOT EXISTS technics
+(
+    technic_id
+    BIGSERIAL
+    PRIMARY
+    KEY,
+    user_id
+    UUID
+    NOT
+    NULL,
+    brand
+    VARCHAR
+(
+    255
+) NOT NULL,
+    model VARCHAR
+(
+    255
+),
+    CONSTRAINT fk_technics_users FOREIGN KEY
+(
+    user_id
+) REFERENCES users
+(
+    id
+) ON DELETE CASCADE
+    );
+
+-- Таблица для связи ManyToMany между Technic и Sensor
+CREATE TABLE IF NOT EXISTS technics_sensors
+(
+    technic_id
+    BIGINT
+    NOT
+    NULL,
+    sensor_id
+    BIGINT
+    NOT
+    NULL,
+    PRIMARY
+    KEY
+(
+    technic_id,
+    sensor_id
+),
+    CONSTRAINT fk_technics_sensors_technics FOREIGN KEY
+(
+    technic_id
+) REFERENCES technics
+(
+    technic_id
+) ON DELETE CASCADE,
+    CONSTRAINT fk_technics_sensors_sensors FOREIGN KEY
+(
+    sensor_id
+) REFERENCES sensors
+(
+    sensor_id
+)
+  ON DELETE CASCADE
+    );

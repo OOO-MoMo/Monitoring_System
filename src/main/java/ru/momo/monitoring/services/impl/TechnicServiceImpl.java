@@ -9,7 +9,11 @@ import ru.momo.monitoring.services.SensorFactory;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
-import ru.momo.monitoring.store.dto.response.*;
+import ru.momo.monitoring.store.dto.response.DataResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
@@ -18,6 +22,7 @@ import ru.momo.monitoring.store.repositories.TechnicRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
 
 import java.util.List;
+import java.util.UUID;
 
 import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
@@ -40,12 +45,12 @@ public class TechnicServiceImpl implements TechnicService {
     }
 
     @Override
-    public Page<TechnicResponseDto> getTechByUserId(Long userId,
+    public Page<TechnicResponseDto> getTechByUserId(UUID userId,
                                                     Pageable pageable,
                                                     String brand,
                                                     String model) {
         if (userRepository.existsById(userId)) {
-            Page<Technic> response = technicRepository.findAllByOwnerIdUserIdAndBrandContainingIgnoreCaseAndModelContainingIgnoreCase(
+            Page<Technic> response = technicRepository.findAllByOwnerIdIdAndBrandContainingIgnoreCaseAndModelContainingIgnoreCase(
                     userId,
                     brand,
                     model,

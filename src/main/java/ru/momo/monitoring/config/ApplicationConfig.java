@@ -28,7 +28,9 @@ public class ApplicationConfig {
     private final JwtTokenProvider tokenProvider;
 
     private final String[] WHITE_LIST_URL = {
-            "/api/v1/auth/**"
+            "/api/v1/auth/**",
+            "/swagger-ui/**",
+            "/v3/api-docs/**"
     };
 
     @Bean

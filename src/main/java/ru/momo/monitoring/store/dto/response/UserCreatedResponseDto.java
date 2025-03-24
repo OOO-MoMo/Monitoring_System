@@ -1,9 +1,15 @@
 package ru.momo.monitoring.store.dto.response;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
+
+import java.util.UUID;
 
 @Data
 @Builder
@@ -12,7 +18,7 @@ import ru.momo.monitoring.store.entities.UserData;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserCreatedResponseDto {
 
-    Long userId;
+    UUID userId;
     String username;
 
     String firstname;
@@ -26,8 +32,8 @@ public class UserCreatedResponseDto {
     public static UserCreatedResponseDto mapFromEntity(User user, UserData data) {
         return UserCreatedResponseDto
                 .builder()
-                .userId(user.getUserId())
-                .username(user.getUsername())
+                .userId(user.getId())
+                .username(user.getEmail())
                 .firstname(data.getFirstname())
                 .lastname(data.getLastname())
                 .patronymic(data.getPatronymic())

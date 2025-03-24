@@ -10,6 +10,8 @@ import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
+import java.util.UUID;
+
 public interface TechnicService {
 
     @Transactional(readOnly = true)
@@ -25,7 +27,7 @@ public interface TechnicService {
     void delete(Long id);
 
     @Transactional(readOnly = true)
-    Page<TechnicResponseDto> getTechByUserId(Long id, Pageable pageable, String brand, String model);
+    Page<TechnicResponseDto> getTechByUserId(UUID id, Pageable pageable, String brand, String model);
 
     @Transactional(readOnly = true)
     TechnicDataResponseDto getSensorsData(Long id);

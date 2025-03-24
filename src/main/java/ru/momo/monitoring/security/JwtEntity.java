@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -16,7 +17,7 @@ import java.util.Collection;
 @Builder
 public class JwtEntity implements UserDetails {
 
-    Long id;
+    UUID id;
     final String username;
     final String password;
     final Collection<? extends GrantedAuthority> authorities;
