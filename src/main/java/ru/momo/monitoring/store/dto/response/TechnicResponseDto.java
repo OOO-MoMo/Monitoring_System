@@ -1,6 +1,10 @@
 package ru.momo.monitoring.store.dto.response;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import ru.momo.monitoring.store.entities.Technic;
 
@@ -18,7 +22,7 @@ public class TechnicResponseDto {
         return TechnicResponseDto
                 .builder()
                 .technicId(technic.getTechnicId())
-                .username(technic.getOwnerId().getUsername())
+                .username(technic.getOwnerId().getEmail())
                 .brand(technic.getBrand())
                 .model(technic.getModel())
                 .build();

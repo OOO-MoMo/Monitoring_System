@@ -1,6 +1,10 @@
 package ru.momo.monitoring.store.dto.response;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
@@ -21,7 +25,7 @@ public class UserResponseDto {
     public static UserResponseDto mapFromEntity(User user, UserData data) {
         return UserResponseDto
                 .builder()
-                .username(user.getUsername())
+                .username(user.getEmail())
                 .firstname(data.getFirstname())
                 .lastname(data.getLastname())
                 .patronymic(data.getPatronymic())

@@ -16,13 +16,14 @@
 	</parent>
 
 	<properties>
-		<java.version>20</java.version>
+		<java.version>17</java.version>
 		<lombok.version>1.18.30</lombok.version>
 		<jakarta-validation.version>3.0.2</jakarta-validation.version>
 		<hibernate-validator.version>8.0.1.Final</hibernate-validator.version>
 		<jjwt.version>0.11.5</jjwt.version>
 		<postgresql.version>42.6.0</postgresql.version>
 		<liquibase.version>4.25.1</liquibase.version>
+		<openapi.verison>2.2.0</openapi.verison>
 	</properties>
 
 	<dependencies>
@@ -104,6 +105,23 @@
 			<groupId>org.liquibase</groupId>
 			<artifactId>liquibase-core</artifactId>
 			<version>${liquibase.version}</version>
+		</dependency>
+
+		<!-- Spring Boot Redis -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>${openapi.verison}</version>
 		</dependency>
 
 	</dependencies>

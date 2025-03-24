@@ -45,7 +45,7 @@ public class UserCreateRequestDto {
     public static User mapToUserEntity(UserCreateRequestDto user) {
         return User
                 .builder()
-                .username(user.getUsername())
+                .email(user.getUsername())
                 .password(user.getPassword())
                 .build();
     }

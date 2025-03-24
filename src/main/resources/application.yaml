@@ -1,6 +1,6 @@
 ---
 server:
-  port: 8080
+  port: 8081
 
 application:
   name: "Monitoring System"
@@ -22,9 +22,37 @@ spring:
     change-log: classpath:liquibase/db.changelog.yaml
     enabled: true
     default-schema: public
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 60000
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 5
+        min-idle: 2
+        max-wait: 2000
+  mail:
+    host: smtp.yandex.ru
+    port: 465
+    username: morgachevctepan
+    password: ${EMAIL_PASSWORD}
+    test-connection: true
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+    protocol: smtps
 
 security:
   jwt:
     secret: ${JWT_SECRET}
     access: 1
     refresh: 30
+
+logging:
+  level:
+    org.springframework.mail: DEBUG
+    com.sun.mail: DEBUG

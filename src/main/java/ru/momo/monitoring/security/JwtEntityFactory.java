@@ -2,30 +2,24 @@ package ru.momo.monitoring.security;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import ru.momo.monitoring.store.entities.Role;
 import ru.momo.monitoring.store.entities.User;
+import ru.momo.monitoring.store.entities.enums.RoleName;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class JwtEntityFactory {
 
     public static JwtEntity create(User user) {
-        return JwtEntity
-                .builder()
-                .id(user.getUserId())
-                .username(user.getUsername())
+        return JwtEntity.builder()
+                .id(user.getId())
+                .username(user.getEmail())
                 .password(user.getPassword())
-                .authorities(mapToGrantedAuthorities(new ArrayList<>(user.getRoles())))
+                .authorities(mapToGrantedAuthorities(user.getRole()))
                 .build();
     }
 
-    private static List<GrantedAuthority> mapToGrantedAuthorities(List<Role> roles) {
-        return roles.stream()
-                .map(Role::getRole)
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
+    private static List<GrantedAuthority> mapToGrantedAuthorities(RoleName role) {
+        return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
 }

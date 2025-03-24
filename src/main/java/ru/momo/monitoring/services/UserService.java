@@ -1,31 +1,34 @@
 package ru.momo.monitoring.services;
 
-import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
+import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserUpdateResponseDto;
 import ru.momo.monitoring.store.entities.User;
+import ru.momo.monitoring.store.entities.enums.RoleName;
+
+import java.util.UUID;
 
 public interface UserService {
 
-    @Transactional(readOnly = true)
-    UserResponseDto getById(Long id);
+    UserResponseDto getById(UUID id);
 
-    @Transactional(readOnly = true)
-    User getByIdEntity(Long id);
+    User getByIdEntity(UUID id);
 
-    @Transactional(readOnly = true)
-    User getByUsername(String username);
+    User getByEmail(String email);
 
-    @Transactional(readOnly = false)
     UserCreatedResponseDto create(UserCreateRequestDto request);
 
-    @Transactional(readOnly = false)
     UserUpdateResponseDto update(UserUpdateRequestDto request);
 
-    @Transactional(readOnly = false)
-    void delete(Long id);
+    void delete(UUID id);
+
+    User saveNotConfirmedUser(RegisterRequest request, RoleName role);
+
+    User confirmUser(String email);
+
+    RoleName getNewUserRoleByCurrentUser(String username);
 
 }
