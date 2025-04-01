@@ -1,11 +1,8 @@
 package ru.momo.monitoring.services;
 
-import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
-import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
-import ru.momo.monitoring.store.dto.response.UserUpdateResponseDto;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.enums.RoleName;
 
@@ -19,9 +16,7 @@ public interface UserService {
 
     User getByEmail(String email);
 
-    UserCreatedResponseDto create(UserCreateRequestDto request);
-
-    UserUpdateResponseDto update(UserUpdateRequestDto request);
+    UserResponseDto update(UserUpdateRequestDto request, String email);
 
     void delete(UUID id);
 
@@ -30,5 +25,7 @@ public interface UserService {
     User confirmUser(String email);
 
     RoleName getNewUserRoleByCurrentUser(String username);
+
+    UserResponseDto getCurrentUserByEmail(String email);
 
 }
