@@ -6,23 +6,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.exceptions.UserBadRequestException;
 import ru.momo.monitoring.services.UserService;
-import ru.momo.monitoring.store.dto.request.UserCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
-import ru.momo.monitoring.store.dto.response.UserCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
-import ru.momo.monitoring.store.dto.response.UserUpdateResponseDto;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
 import ru.momo.monitoring.store.entities.enums.RoleName;
-import ru.momo.monitoring.store.repositories.UserDataRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
 
 import java.util.ArrayList;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
-
-import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -30,105 +25,55 @@ public class UserServiceImpl implements UserService {
 
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private final UserDataRepository userDataRepository;
 
     @Override
     @Transactional(readOnly = true)
     public UserResponseDto getById(UUID id) {
-        User user = userRepository
-                .findById(id)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("User with id = %d is not found", id)
-                );
-
-        //user и так существует, поэтому сразу вызываю метод get()
-        UserData data = userDataRepository.findByUser(user).get();
-
-        return UserResponseDto.mapFromEntity(user, data);
+        User user = userRepository.findByIdOrThrow(id);
+        return UserResponseDto.mapFromEntity(user);
     }
 
     @Override
     @Transactional(readOnly = true)
     public User getByIdEntity(UUID id) {
-        return userRepository
-                .findById(id)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("User with id = %d is not found", id)
-                );
+        return userRepository.findByIdOrThrow(id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public User getByEmail(String email) {
-        return userRepository
-                .findByEmail(email)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("User with email = %s is not found", email)
-                );
+        return userRepository.findByEmailOrThrow(email);
     }
 
     @Override
     @Transactional
-    public UserCreatedResponseDto create(UserCreateRequestDto request) {
-        User user = UserCreateRequestDto.mapToUserEntity(request);
+    public UserResponseDto update(UserUpdateRequestDto request, String email) {
+        User user = userRepository.findByEmailOrThrow(email);
+        UserData userData = user.getUserData();
 
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            throw new UserBadRequestException("User with email %s already exists", user.getEmail());
-        }
+        updateField(request.getFirstname(), userData::setFirstname);
+        updateField(request.getLastname(), userData::setLastname);
+        updateField(request.getPatronymic(), userData::setPatronymic);
+        updateField(request.getDateOfBirth(), userData::setDateOfBirth);
+        updateField(request.getAddress(), userData::setAddress);
+        updateField(request.getOrganization(), userData::setOrganization);
 
-        if (!request.getPassword().equals(request.getPasswordConfirmation())) {
-            throw new UserBadRequestException("Password and password confirmation do not match");
-        }
-
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole(RoleName.ROLE_ADMIN);
-        UserData data = UserCreateRequestDto.mapToUserDataEntity(request);
-        user.setUserData(data);
-        data.setUser(user);
-        userRepository.save(user);
-        return UserCreatedResponseDto.mapFromEntity(user, data);
-    }
-
-    /*Пока что изменяю только username
-    В будущем можно изменять и другие поля тоже*/
-    @Override
-    @Transactional
-    public UserUpdateResponseDto update(UserUpdateRequestDto request) {
-        if (Objects.equals(request.getOldUsername(), request.getNewUsername())) {
-            throw new UserBadRequestException("You already have this username");
-        }
-
-        User updatedUser = userRepository
-                .findByEmail(request.getOldUsername())
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier(
-                                "User with username = %s is not exist", request.getOldUsername()
-                        )
-                );
-
-        if (request.getNewUsername() != null) {
-            if (userRepository.findByEmail(request.getNewUsername()).isPresent()) {
-                throw new UserBadRequestException("User with name %s already exists", request.getNewUsername());
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            if (userRepository.existsByUserData_PhoneNumber(request.getPhoneNumber())) {
+                throw new IllegalArgumentException("Номер телефона уже используется");
             }
-            updatedUser.setEmail(request.getNewUsername());
+            userData.setPhoneNumber(request.getPhoneNumber());
         }
 
-        userRepository.save(updatedUser);
-
-        return UserUpdateResponseDto.mapFromEntity(updatedUser);
+        return UserResponseDto.mapFromEntity(user);
     }
 
     @Override
     @Transactional
     public void delete(UUID id) {
-        User deletedUser = userRepository
-                .findById(id)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier(
-                                "User with id = %d is not exist", id
-                        )
-                );
-        userRepository.delete(deletedUser);
+        User deletedUser = userRepository.findByIdOrThrow(id);
+        deletedUser.setIsActive(false);
+        userRepository.save(deletedUser);
     }
 
     @Override
@@ -153,6 +98,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public UserResponseDto getCurrentUserByEmail(String email) {
+        User user = getByEmail(email);
+        return UserResponseDto.mapFromEntity(user);
+    }
+
+    @Override
     @Transactional
     public User saveNotConfirmedUser(RegisterRequest request, RoleName role) {
         if (!request.password().equals(request.passwordConfirmation())) {
@@ -169,6 +121,12 @@ public class UserServiceImpl implements UserService {
         }
 
         return userRepository.save(user);
+    }
+
+    private <T> void updateField(T value, Consumer<T> setter) {
+        Optional.ofNullable(value)
+                .filter(v -> !(v instanceof String) || !((String) v).isBlank())
+                .ifPresent(setter);
     }
 
 }

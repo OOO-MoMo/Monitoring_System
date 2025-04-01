@@ -36,20 +36,15 @@ CREATE TABLE IF NOT EXISTS users
 
 CREATE TABLE IF NOT EXISTS users_data
 (
-    users_data_id
-    BIGSERIAL
-    PRIMARY
-    KEY,
     user_id
     UUID
-    NOT
-    NULL
-    UNIQUE,
+    PRIMARY
+    KEY,
     phone_number
     VARCHAR
 (
     255
-) NOT NULL,
+) NOT NULL UNIQUE,
     firstname VARCHAR
 (
     255
@@ -59,6 +54,12 @@ CREATE TABLE IF NOT EXISTS users_data
     255
 ) NOT NULL,
     patronymic VARCHAR
+(
+    255
+),
+    date_of_birth DATE,
+    address TEXT,
+    organization VARCHAR
 (
     255
 ),

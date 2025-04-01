@@ -6,9 +6,12 @@ VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- явный UUID
         'ROLE_ADMIN',
         true);
 
-INSERT INTO users_data (user_id, phone_number, firstname, lastname, patronymic)
+INSERT INTO users_data (user_id, phone_number, firstname, lastname, patronymic, date_of_birth, address, organization)
 VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         '88005553535',
         'Admin',
         'Adminov',
-        'Adminovich');
+        'Adminovich',
+        '1985-01-15',
+        '123456, Россия, г. Москва, ул. Примерная, д. 1',
+        'ООО "Примерная компания"');
