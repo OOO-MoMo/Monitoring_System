@@ -1,8 +1,14 @@
 package ru.momo.monitoring.store.dto.response;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import ru.momo.monitoring.store.dto.request.SensorToTechnicRequestDto;
+
+import java.util.UUID;
 
 @Data
 @Builder
@@ -13,7 +19,7 @@ public class SensorToTechnicResponseDto {
 
     Long sensorId;
 
-    Long technicId;
+    UUID technicId;
 
     String action;
 

@@ -137,7 +137,6 @@ public class AuthController {
     )
     public String resendConfirmationEmail(
             Principal principal) {
-
         return authService.resendConfirmationEmail(principal.getName());
     }
 

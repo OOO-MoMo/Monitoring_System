@@ -9,6 +9,7 @@ import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
+import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
 import ru.momo.monitoring.store.entities.enums.RoleName;
@@ -68,6 +69,7 @@ public class UserServiceImpl implements UserService {
         return UserResponseDto.mapFromEntity(user);
     }
 
+    //todo надо сделать чтобы у пользователя токены становились не валидными
     @Override
     @Transactional
     public void delete(UUID id) {
@@ -102,6 +104,13 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto getCurrentUserByEmail(String email) {
         User user = getByEmail(email);
         return UserResponseDto.mapFromEntity(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserRoleResponseDto getCurrentUserRoleByEmail(String email) {
+        User user = getByEmail(email);
+        return new UserRoleResponseDto(user.getRole().name());
     }
 
     @Override

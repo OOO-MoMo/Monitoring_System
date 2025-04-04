@@ -3,6 +3,7 @@ package ru.momo.monitoring.services;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
+import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.enums.RoleName;
 
@@ -27,5 +28,7 @@ public interface UserService {
     RoleName getNewUserRoleByCurrentUser(String username);
 
     UserResponseDto getCurrentUserByEmail(String email);
+
+    UserRoleResponseDto getCurrentUserRoleByEmail(String email);
 
 }

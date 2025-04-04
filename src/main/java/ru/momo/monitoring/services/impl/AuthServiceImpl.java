@@ -32,11 +32,12 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public JwtResponse login(JwtRequest loginRequest) {
+        User user = userService.getByEmail(loginRequest.getEmail());
+        checkActive(user);
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 loginRequest.getEmail(),
                 loginRequest.getPassword())
         );
-        User user = userService.getByEmail(loginRequest.getEmail());
         return createJwtResponse(user);
     }
 
@@ -52,8 +53,6 @@ public class AuthServiceImpl implements AuthService {
 
         RoleName role = userService.getNewUserRoleByCurrentUser(username);
         User user = userService.saveNotConfirmedUser(request, role);
-
-        System.out.println(token + " " + redisService.getValueByToken(token));
 
         return createJwtResponse(user);
     }
@@ -93,4 +92,11 @@ public class AuthServiceImpl implements AuthService {
                 .refreshToken(jwtTokenProvider.createRefreshToken(user.getId(), user.getEmail()))
                 .build();
     }
+
+    private void checkActive(User user) {
+        if (!user.getIsActive()) {
+            throw new UserBadRequestException("User is not active");
+        }
+    }
+
 }

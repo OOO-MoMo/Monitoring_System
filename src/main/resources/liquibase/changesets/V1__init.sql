@@ -91,16 +91,16 @@ CREATE TABLE IF NOT EXISTS sensors
 
 CREATE TABLE IF NOT EXISTS technics
 (
-    technic_id
-    BIGSERIAL
-    PRIMARY
-    KEY,
-    user_id
+    id
     UUID
-    NOT
-    NULL,
-    brand
-    VARCHAR
+    PRIMARY
+    KEY
+    DEFAULT
+    gen_random_uuid
+(
+),
+    user_id UUID,
+    brand VARCHAR
 (
     255
 ) NOT NULL,
@@ -108,6 +108,19 @@ CREATE TABLE IF NOT EXISTS technics
 (
     255
 ),
+    year INTEGER,
+    serial_number VARCHAR
+(
+    255
+) UNIQUE,
+    vin VARCHAR
+(
+    255
+) UNIQUE,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    last_service_date TIMESTAMP,
+    next_service_date TIMESTAMP,
     CONSTRAINT fk_technics_users FOREIGN KEY
 (
     user_id
@@ -121,7 +134,7 @@ CREATE TABLE IF NOT EXISTS technics
 CREATE TABLE IF NOT EXISTS technics_sensors
 (
     technic_id
-    BIGINT
+    UUID
     NOT
     NULL,
     sensor_id
@@ -139,7 +152,7 @@ CREATE TABLE IF NOT EXISTS technics_sensors
     technic_id
 ) REFERENCES technics
 (
-    technic_id
+    id
 ) ON DELETE CASCADE,
     CONSTRAINT fk_technics_sensors_sensors FOREIGN KEY
 (
