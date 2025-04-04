@@ -9,7 +9,7 @@ import ru.momo.monitoring.store.entities.Technic;
 import java.util.UUID;
 
 @Repository
-public interface TechnicRepository extends JpaRepository<Technic, Long> {
+public interface TechnicRepository extends JpaRepository<Technic, UUID> {
 
     Page<Technic> findAllByOwnerIdIdAndBrandContainingIgnoreCaseAndModelContainingIgnoreCase(
             UUID ownerId,

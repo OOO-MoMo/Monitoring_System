@@ -15,6 +15,7 @@ import ru.momo.monitoring.store.repositories.SensorRepository;
 import ru.momo.monitoring.store.repositories.TechnicRepository;
 
 import java.util.List;
+import java.util.UUID;
 
 import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
@@ -70,7 +71,7 @@ public class SensorServiceImpl implements SensorService {
         if (!isSensorExist) {
             throw new SensorBadRequestException(
                     "Technic with id = %d have not sensor with id = %d ",
-                    technic.getTechnicId(),
+                    technic.getId(),
                     sensor.getSensorId()
             );
         }
@@ -84,7 +85,7 @@ public class SensorServiceImpl implements SensorService {
         if (isSensorExist) {
             throw new SensorBadRequestException(
                     "Technic with id = %d is already have sensor with id = %d ",
-                    technic.getTechnicId(),
+                    technic.getId(),
                     sensor.getSensorId()
             );
         }
@@ -95,7 +96,7 @@ public class SensorServiceImpl implements SensorService {
     }
 
     @Override
-    public List<SensorResponseDto> getSensorByTechnicId(Long technicId) {
+    public List<SensorResponseDto> getSensorByTechnicId(UUID technicId) {
         List<Sensor> response = null;
 
         if (technicRepository.existsById(technicId)) {

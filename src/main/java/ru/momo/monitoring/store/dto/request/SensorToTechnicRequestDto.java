@@ -2,8 +2,14 @@ package ru.momo.monitoring.store.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+
+import java.util.UUID;
 
 @Data
 @Builder
@@ -24,6 +30,6 @@ public class SensorToTechnicRequestDto {
     Long sensorId;
 
     @NotNull(message = "Technic id must be not null")
-    Long technicId;
+    UUID technicId;
 
 }

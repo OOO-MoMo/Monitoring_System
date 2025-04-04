@@ -16,12 +16,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.momo.monitoring.exceptions.ExceptionBody;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
+import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
+import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 
 import java.security.Principal;
 import java.util.UUID;
@@ -51,6 +54,25 @@ public class UserController {
     )
     public UserResponseDto getCurrentUser(Principal principal) {
         return userService.getCurrentUserByEmail(principal.getName());
+    }
+
+    @GetMapping("/current/role")
+    @PreAuthorize(value = "hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_DRIVER')")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Получение роли текущего пользователя",
+            description = "Возвращает информацию о роли пользователе, который выполнил запрос.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Данные о пользователе успешно получены",
+                            content = @Content(schema = @Schema(implementation = UserResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public UserRoleResponseDto getCurrentUserRole(Principal principal) {
+        return userService.getCurrentUserRoleByEmail(principal.getName());
     }
 
     @GetMapping("/{id}")
@@ -117,6 +139,29 @@ public class UserController {
             @Parameter(description = "UUID пользователя", required = true)
             @PathVariable UUID id) {
         userService.delete(id);
+    }
+
+    @GetMapping("/drivers/search")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @Operation(
+            summary = "Поиск активных водителей",
+            description = "Позволяет искать водителей по фамилии, имени, отчеству или организации.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Результаты поиска успешно получены",
+                            content = @Content(schema = @Schema(implementation = UserResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public ActiveDriversResponseDto searchActiveDrivers(
+            @RequestParam(required = false) String firstname,
+            @RequestParam(required = false) String lastname,
+            @RequestParam(required = false) String patronymic,
+            @RequestParam(required = false) String organization) {
+        //return userService.searchActiveDrivers(firstname, lastname, patronymic, organization);
+        throw new IllegalCallerException("Not implemented yet");
     }
 
 }

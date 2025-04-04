@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.exceptions.ResourceNotFoundException;
 import ru.momo.monitoring.services.SensorFactory;
 import ru.momo.monitoring.services.TechnicService;
@@ -16,7 +17,6 @@ import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.Technic;
-import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.repositories.SensorRepository;
 import ru.momo.monitoring.store.repositories.TechnicRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
@@ -40,11 +40,13 @@ public class TechnicServiceImpl implements TechnicService {
 
 
     @Override
-    public TechnicResponseDto getTechById(Long id) {
+    @Transactional(readOnly = true)
+    public TechnicResponseDto getTechById(UUID id) {
         return TechnicResponseDto.mapFromEntity(getTechnic(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<TechnicResponseDto> getTechByUserId(UUID userId,
                                                     Pageable pageable,
                                                     String brand,
@@ -70,7 +72,8 @@ public class TechnicServiceImpl implements TechnicService {
     }
 
     @Override
-    public TechnicDataResponseDto getSensorsData(Long id) {
+    @Transactional(readOnly = true)
+    public TechnicDataResponseDto getSensorsData(UUID id) {
         Technic technic = getTechnic(id);
         List<Sensor> technicSensors = sensorRepository.findByTechnicId(id);
 
@@ -88,20 +91,15 @@ public class TechnicServiceImpl implements TechnicService {
     }
 
     @Override
+    @Transactional
     public TechnicCreatedResponseDto create(TechnicCreateRequestDto request) {
-        User owner = userRepository.findById(request.getOwnerId())
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("User with id = %d is not exist", request.getOwnerId())
-                );
-
-        Technic technic = TechnicCreateRequestDto.mapToTechnicEntity(request, owner);
-
+        Technic technic = TechnicCreateRequestDto.mapToTechnicEntity(request);
         technicRepository.save(technic);
-
-        return TechnicCreatedResponseDto.MapFromEntity(technic, owner);
+        return TechnicCreatedResponseDto.MapFromEntity(technic);
     }
 
     @Override
+    @Transactional
     public TechnicUpdateResponseDto update(TechnicUpdateRequestDto request) {
         Technic updatedTechnic = getTechnic(request.getTechnicId());
 
@@ -118,12 +116,13 @@ public class TechnicServiceImpl implements TechnicService {
     }
 
     @Override
-    public void delete(Long id) {
+    @Transactional
+    public void delete(UUID id) {
         Technic deletedTechnic = getTechnic(id);
         technicRepository.delete(deletedTechnic);
     }
 
-    private Technic getTechnic(Long id) {
+    private Technic getTechnic(UUID id) {
         return technicRepository
                 .findById(id)
                 .orElseThrow(

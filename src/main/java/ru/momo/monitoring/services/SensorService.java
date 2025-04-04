@@ -8,6 +8,7 @@ import ru.momo.monitoring.store.dto.response.SensorResponseDto;
 import ru.momo.monitoring.store.dto.response.SensorToTechnicResponseDto;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface SensorService {
 
@@ -21,8 +22,7 @@ public interface SensorService {
     SensorToTechnicResponseDto actionSensorToTechnic(SensorToTechnicRequestDto request);
 
     @Transactional(readOnly = true)
-    List<SensorResponseDto> getSensorByTechnicId(Long technicId);
+    List<SensorResponseDto> getSensorByTechnicId(UUID technicId);
 
-    @Transactional(readOnly = false)
     void delete(Long id);
 }

@@ -7,12 +7,13 @@ import ru.momo.monitoring.store.entities.Sensor;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface SensorRepository extends JpaRepository<Sensor, Long> {
 
     Optional<Sensor> findByType(String type);
 
-    @Query("SELECT s FROM sensors s JOIN s.technics t WHERE t.technicId = :technicId")
-    List<Sensor> findByTechnicId(@Param("technicId") Long technicId);
+    @Query("SELECT s FROM sensors s JOIN s.technics t WHERE t.id = :id")
+    List<Sensor> findByTechnicId(@Param("id") UUID id);
 
 }

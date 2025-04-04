@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +15,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.momo.monitoring.annotations.CheckUserActive;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
@@ -23,9 +26,7 @@ import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
-import java.net.URI;
 import java.util.UUID;
-
 
 @RestController
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class TechnicController {
     private final TechnicService technicService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getById(@PathVariable Long id) {
+    public ResponseEntity<?> getById(@PathVariable UUID id) {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(technicService.getTechById(id));
@@ -67,11 +68,11 @@ public class TechnicController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<?> addNewTechnic(@RequestBody @Validated TechnicCreateRequestDto request) {
-        TechnicCreatedResponseDto response = technicService.create(request);
-        return ResponseEntity
-                .created(URI.create("/api/v1/technic/" + response.getTechnicId()))
-                .body(response);
+    @PreAuthorize(value = "hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.CREATED)
+    public TechnicCreatedResponseDto addNewTechnic(@RequestBody @Validated TechnicCreateRequestDto request) {
+        return technicService.create(request);
     }
 
 
@@ -84,7 +85,7 @@ public class TechnicController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteTechnic(@PathVariable Long id) {
+    public ResponseEntity<?> deleteTechnic(@PathVariable UUID id) {
         technicService.delete(id);
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
@@ -92,7 +93,7 @@ public class TechnicController {
     }
 
     @GetMapping("/data/{id}")
-    public ResponseEntity<?> getSensorsData(@PathVariable Long id) {
+    public ResponseEntity<?> getSensorsData(@PathVariable UUID id) {
         TechnicDataResponseDto response = technicService.getSensorsData(id);
         return ResponseEntity
                 .status(HttpStatus.OK)
