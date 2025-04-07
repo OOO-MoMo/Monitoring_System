@@ -8,23 +8,25 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.exceptions.ResourceNotFoundException;
 import ru.momo.monitoring.services.SensorFactory;
 import ru.momo.monitoring.services.TechnicService;
+import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
+import ru.momo.monitoring.store.dto.request.TechnicPutDriverRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.DataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.Technic;
+import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.repositories.SensorRepository;
 import ru.momo.monitoring.store.repositories.TechnicRepository;
 import ru.momo.monitoring.store.repositories.UserRepository;
 
 import java.util.List;
 import java.util.UUID;
-
-import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
 @Service
 @RequiredArgsConstructor
@@ -38,11 +40,24 @@ public class TechnicServiceImpl implements TechnicService {
 
     private final SensorFactory sensorFactory;
 
+    private final UserService userService;
 
     @Override
     @Transactional(readOnly = true)
     public TechnicResponseDto getTechById(UUID id) {
-        return TechnicResponseDto.mapFromEntity(getTechnic(id));
+        return TechnicResponseDto.mapFromEntity(technicRepository.findByIdOrThrow(id));
+    }
+
+    @Override
+    @Transactional
+    public TechnicCreatedResponseDto create(TechnicCreateRequestDto request) {
+        Technic technic = TechnicCreateRequestDto.mapToTechnicEntity(request);
+
+        validateNewTechnic(request);
+
+        technicRepository.save(technic);
+
+        return TechnicCreatedResponseDto.MapFromEntity(technic);
     }
 
     @Override
@@ -74,12 +89,8 @@ public class TechnicServiceImpl implements TechnicService {
     @Override
     @Transactional(readOnly = true)
     public TechnicDataResponseDto getSensorsData(UUID id) {
-        Technic technic = getTechnic(id);
+        Technic technic = technicRepository.findByIdOrThrow(id);
         List<Sensor> technicSensors = sensorRepository.findByTechnicId(id);
-
-        if (technicRepository == null) {
-            throw new ResourceNotFoundException("Technic with id = %d is not have any sensors", id);
-        }
 
         List<DataResponseDto> data = technicSensors
                 .stream()
@@ -91,17 +102,21 @@ public class TechnicServiceImpl implements TechnicService {
     }
 
     @Override
-    @Transactional
-    public TechnicCreatedResponseDto create(TechnicCreateRequestDto request) {
-        Technic technic = TechnicCreateRequestDto.mapToTechnicEntity(request);
+    public TechnicPutDriverResponseDto putNewDriver(TechnicPutDriverRequestDto request) {
+        Technic technic = technicRepository.findByIdOrThrow(request.technicId());
+        User user = userService.getByIdEntity(request.driverId());
+
+        technic.setOwnerId(user);
+        user.addTechnic(technic);
         technicRepository.save(technic);
-        return TechnicCreatedResponseDto.MapFromEntity(technic);
+
+        return new TechnicPutDriverResponseDto(request.technicId(), request.driverId());
     }
 
     @Override
     @Transactional
     public TechnicUpdateResponseDto update(TechnicUpdateRequestDto request) {
-        Technic updatedTechnic = getTechnic(request.getTechnicId());
+        Technic updatedTechnic = technicRepository.findByIdOrThrow(request.getTechnicId());
 
         if (request.getNewBrand() != null) {
             updatedTechnic.setBrand(request.getNewBrand());
@@ -118,16 +133,13 @@ public class TechnicServiceImpl implements TechnicService {
     @Override
     @Transactional
     public void delete(UUID id) {
-        Technic deletedTechnic = getTechnic(id);
+        Technic deletedTechnic = technicRepository.findByIdOrThrow(id);
         technicRepository.delete(deletedTechnic);
     }
 
-    private Technic getTechnic(UUID id) {
-        return technicRepository
-                .findById(id)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("Technic with id = %d is not exist", id)
-                );
+    private void validateNewTechnic(TechnicCreateRequestDto request) {
+        technicRepository.throwIfExistWithSameSerialNumber(request.getSerialNumber());
+        technicRepository.throwIfExistWithSameVin(request.getVin());
     }
 
 }

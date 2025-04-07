@@ -2,6 +2,7 @@ package ru.momo.monitoring.services;
 
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
+import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 import ru.momo.monitoring.store.entities.User;
@@ -30,5 +31,12 @@ public interface UserService {
     UserResponseDto getCurrentUserByEmail(String email);
 
     UserRoleResponseDto getCurrentUserRoleByEmail(String email);
+
+    ActiveDriversResponseDto searchActiveDrivers(
+            String firstname,
+            String lastname,
+            String patronymic,
+            String organization
+    );
 
 }

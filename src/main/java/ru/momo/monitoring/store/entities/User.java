@@ -21,6 +21,7 @@ import org.hibernate.annotations.GenericGenerator;
 import ru.momo.monitoring.store.entities.enums.RoleName;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,5 +71,14 @@ public class User {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    public void addTechnic(Technic technic) {
+        if (technics == null) {
+            technics = new ArrayList<>();
+            technics.add(technic);
+        } else {
+            technics.add(technic);
+        }
+    }
 
 }

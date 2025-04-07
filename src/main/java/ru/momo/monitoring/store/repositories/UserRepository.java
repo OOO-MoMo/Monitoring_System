@@ -1,7 +1,7 @@
 package ru.momo.monitoring.store.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import ru.momo.monitoring.store.entities.User;
 
 import java.util.Optional;
@@ -9,8 +9,7 @@ import java.util.UUID;
 
 import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
-@Repository
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificationExecutor<User> {
 
     Optional<User> findByEmail(String email);
 
@@ -19,7 +18,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     default User findByIdOrThrow(UUID id) {
         return findById(id)
                 .orElseThrow(
-                        resourceNotFoundExceptionSupplier("User with id = %d is not found", id)
+                        resourceNotFoundExceptionSupplier("User with id = %s is not found", id.toString())
                 );
     }
 

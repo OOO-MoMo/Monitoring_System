@@ -10,16 +10,16 @@ import ru.momo.monitoring.store.entities.User;
 
 @Aspect
 @Component
-public class UserActiveAspect {
+public class UserConfirmedAspect {
 
     private final UserService userService;
 
-    public UserActiveAspect(UserService userService) {
+    public UserConfirmedAspect(UserService userService) {
         this.userService = userService;
     }
 
     @Before("@annotation(CheckUserActive)")
-    public void checkUserActive() {
+    public void checkUserConfirmed() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new SecurityException("User not authenticated");
@@ -27,8 +27,9 @@ public class UserActiveAspect {
 
         User user = userService.getByEmail(authentication.getName());
 
-        if (!user.getIsActive()) {
-            throw new IllegalStateException("User is not active");
+        if (!user.getIsConfirmed()) {
+            throw new IllegalStateException("User is not confirmed");
         }
     }
+
 }

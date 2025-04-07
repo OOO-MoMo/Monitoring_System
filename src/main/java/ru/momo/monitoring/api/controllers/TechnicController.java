@@ -1,5 +1,9 @@
 package ru.momo.monitoring.api.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,11 +22,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.momo.monitoring.annotations.CheckUserActive;
+import ru.momo.monitoring.exceptions.ExceptionBody;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
+import ru.momo.monitoring.store.dto.request.TechnicPutDriverRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
@@ -36,10 +43,69 @@ public class TechnicController {
     private final TechnicService technicService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getById(@PathVariable UUID id) {
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(technicService.getTechById(id));
+    @PreAuthorize(value = "hasRole('ROLE_ADMIN')")
+    @ResponseStatus(HttpStatus.OK)
+    @CheckUserActive
+    @Operation(
+            summary = "Получение техники по ID",
+            description = "Доступно только для администраторов.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Данные о технике успешно получены",
+                            content = @Content(schema = @Schema(implementation = TechnicResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Техника не найдена",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public TechnicResponseDto getById(@PathVariable UUID id) {
+        return technicService.getTechById(id);
+    }
+
+    @PostMapping("/")
+    @PreAuthorize(value = "hasRole('ROLE_ADMIN')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Создание новой техники",
+            description = "Доступно только для админов.",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Новая единица техники успешно создана",
+                            content = @Content(schema = @Schema(implementation = TechnicCreatedResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "409", description = "Неверные данные для новой единицы техники",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public TechnicCreatedResponseDto addNewTechnic(@RequestBody @Validated TechnicCreateRequestDto request) {
+        return technicService.create(request);
+    }
+
+    @PutMapping("/driver")
+    @PreAuthorize(value = "hasRole('ROLE_MANAGER')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Добавление водителя для техники",
+            description = "Доступно только для менеджеров.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Действие выполнено успешно",
+                            content = @Content(schema = @Schema(implementation = TechnicPutDriverResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Пользователь/техника не найдены",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public TechnicPutDriverResponseDto putNewDriver(@RequestBody @Validated TechnicPutDriverRequestDto request) {
+        return technicService.putNewDriver(request);
     }
 
     @GetMapping("/")
@@ -66,15 +132,6 @@ public class TechnicController {
                     .body(response);
         }
     }
-
-    @PostMapping("/")
-    @PreAuthorize(value = "hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
-    @CheckUserActive
-    @ResponseStatus(HttpStatus.CREATED)
-    public TechnicCreatedResponseDto addNewTechnic(@RequestBody @Validated TechnicCreateRequestDto request) {
-        return technicService.create(request);
-    }
-
 
     @PutMapping("/")
     public ResponseEntity<?> updateTechnic(@RequestBody @Validated TechnicUpdateRequestDto request) {

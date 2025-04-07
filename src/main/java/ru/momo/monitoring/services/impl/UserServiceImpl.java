@@ -1,6 +1,8 @@
 package ru.momo.monitoring.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,14 +10,17 @@ import ru.momo.monitoring.exceptions.UserBadRequestException;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
+import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
 import ru.momo.monitoring.store.entities.enums.RoleName;
 import ru.momo.monitoring.store.repositories.UserRepository;
+import ru.momo.monitoring.store.repositories.specification.UserSpecifications;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -111,6 +116,43 @@ public class UserServiceImpl implements UserService {
     public UserRoleResponseDto getCurrentUserRoleByEmail(String email) {
         User user = getByEmail(email);
         return new UserRoleResponseDto(user.getRole().name());
+    }
+
+    @Override
+    public ActiveDriversResponseDto searchActiveDrivers(
+            String firstname,
+            String lastname,
+            String patronymic,
+            String organization
+    ) {
+        Specification<User> spec = Specification.where(UserSpecifications.isActiveAndConfirmedDriver());
+
+        if (firstname != null && !firstname.isBlank()) {
+            spec = spec.and(UserSpecifications.hasFirstname(firstname));
+        }
+
+        if (lastname != null && !lastname.isBlank()) {
+            spec = spec.and(UserSpecifications.hasLastname(lastname));
+        }
+
+        if (patronymic != null && !patronymic.isBlank()) {
+            spec = spec.and(UserSpecifications.hasPatronymic(patronymic));
+        }
+
+        if (organization != null && !organization.isBlank()) {
+            spec = spec.and(UserSpecifications.hasOrganization(organization));
+        }
+
+        List<User> users = userRepository.findAll(spec, Sort.by(
+                Sort.Order.asc("userData.firstname"),
+                Sort.Order.asc("userData.lastname"),
+                Sort.Order.asc("userData.patronymic"),
+                Sort.Order.asc("userData.organization")
+        ));
+
+        List<UserResponseDto> result = users.stream().map(UserResponseDto::mapFromEntity).toList();
+
+        return new ActiveDriversResponseDto(result);
     }
 
     @Override
