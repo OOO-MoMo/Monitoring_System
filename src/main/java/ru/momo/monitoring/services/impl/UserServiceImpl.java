@@ -1,21 +1,28 @@
 package ru.momo.monitoring.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.exceptions.UserBadRequestException;
+import ru.momo.monitoring.services.UserDataService;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
+import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
+import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
 import ru.momo.monitoring.store.entities.enums.RoleName;
 import ru.momo.monitoring.store.repositories.UserRepository;
+import ru.momo.monitoring.store.repositories.specification.UserSpecifications;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -26,6 +33,7 @@ public class UserServiceImpl implements UserService {
 
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final UserDataService userDataService;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,6 +58,13 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto update(UserUpdateRequestDto request, String email) {
         User user = userRepository.findByEmailOrThrow(email);
+
+        if (user.getUserData() == null) {
+            UserData newUserData = new UserData();
+            newUserData.setUser(user);
+            user.setUserData(newUserData);
+        }
+
         UserData userData = user.getUserData();
 
         updateField(request.getFirstname(), userData::setFirstname);
@@ -57,7 +72,6 @@ public class UserServiceImpl implements UserService {
         updateField(request.getPatronymic(), userData::setPatronymic);
         updateField(request.getDateOfBirth(), userData::setDateOfBirth);
         updateField(request.getAddress(), userData::setAddress);
-        updateField(request.getOrganization(), userData::setOrganization);
 
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             if (userRepository.existsByUserData_PhoneNumber(request.getPhoneNumber())) {
@@ -65,6 +79,8 @@ public class UserServiceImpl implements UserService {
             }
             userData.setPhoneNumber(request.getPhoneNumber());
         }
+
+        userRepository.save(user);
 
         return UserResponseDto.mapFromEntity(user);
     }
@@ -115,7 +131,56 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User saveNotConfirmedUser(RegisterRequest request, RoleName role) {
+    public void save(User user) {
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> findAllActiveByCompanyId(UUID id) {
+        return userRepository.findUserByCompany_Id(id);
+    }
+
+    @Override
+    public ActiveDriversResponseDto searchActiveDrivers(
+            String firstname,
+            String lastname,
+            String patronymic,
+            String organization
+    ) {
+        Specification<User> spec = Specification.where(UserSpecifications.isActiveAndConfirmedDriver());
+
+        if (firstname != null && !firstname.isBlank()) {
+            spec = spec.and(UserSpecifications.hasFirstname(firstname));
+        }
+
+        if (lastname != null && !lastname.isBlank()) {
+            spec = spec.and(UserSpecifications.hasLastname(lastname));
+        }
+
+        if (patronymic != null && !patronymic.isBlank()) {
+            spec = spec.and(UserSpecifications.hasPatronymic(patronymic));
+        }
+
+        if (organization != null && !organization.isBlank()) {
+            spec = spec.and(UserSpecifications.hasOrganization(organization));
+        }
+
+        List<User> users = userRepository.findAll(spec, Sort.by(
+                Sort.Order.asc("userData.firstname"),
+                Sort.Order.asc("userData.lastname"),
+                Sort.Order.asc("userData.patronymic"),
+                Sort.Order.asc("userData.organization")
+        ));
+
+        List<UserResponseDto> result = users.stream().map(UserResponseDto::mapFromEntity).toList();
+
+        return new ActiveDriversResponseDto(result);
+    }
+
+    @Override
+    @Transactional
+    public User saveNotConfirmedUser(RegisterRequest request, RoleName role, Company company) {
         if (!request.password().equals(request.passwordConfirmation())) {
             throw new UserBadRequestException("Пароли должны совпадать");
         }
@@ -124,6 +189,8 @@ public class UserServiceImpl implements UserService {
         user.setRole(role);
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setEmail(request.email());
+        user.setCompany(company);
+        company.addUser(user);
 
         if (role.equals(RoleName.ROLE_DRIVER)) {
             user.setTechnics(new ArrayList<>());

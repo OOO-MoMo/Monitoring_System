@@ -2,11 +2,14 @@ package ru.momo.monitoring.services;
 
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
+import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
+import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.enums.RoleName;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface UserService {
@@ -21,7 +24,7 @@ public interface UserService {
 
     void delete(UUID id);
 
-    User saveNotConfirmedUser(RegisterRequest request, RoleName role);
+    User saveNotConfirmedUser(RegisterRequest request, RoleName role, Company company);
 
     User confirmUser(String email);
 
@@ -30,5 +33,16 @@ public interface UserService {
     UserResponseDto getCurrentUserByEmail(String email);
 
     UserRoleResponseDto getCurrentUserRoleByEmail(String email);
+
+    void save(User user);
+
+    List<User> findAllActiveByCompanyId(UUID id);
+
+    ActiveDriversResponseDto searchActiveDrivers(
+            String firstname,
+            String lastname,
+            String patronymic,
+            String organization
+    );
 
 }

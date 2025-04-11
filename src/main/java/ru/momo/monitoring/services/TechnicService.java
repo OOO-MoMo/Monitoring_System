@@ -3,9 +3,11 @@ package ru.momo.monitoring.services;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
+import ru.momo.monitoring.store.dto.request.TechnicPutDriverRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
@@ -24,5 +26,7 @@ public interface TechnicService {
     Page<TechnicResponseDto> getTechByUserId(UUID id, Pageable pageable, String brand, String model);
 
     TechnicDataResponseDto getSensorsData(UUID id);
+
+    TechnicPutDriverResponseDto putNewDriver(TechnicPutDriverRequestDto request);
 
 }

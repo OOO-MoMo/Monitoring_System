@@ -13,12 +13,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.momo.monitoring.annotations.CheckUserActive;
 import ru.momo.monitoring.exceptions.ExceptionBody;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
@@ -78,6 +79,7 @@ public class UserController {
     @GetMapping("/{id}")
     @PreAuthorize(value = "hasRole('ROLE_ADMIN')")
     @ResponseStatus(HttpStatus.OK)
+    @CheckUserActive
     @Operation(
             summary = "Получение пользователя по ID",
             description = "Доступно только для администраторов.",
@@ -98,7 +100,7 @@ public class UserController {
         return userService.getById(id);
     }
 
-    @PutMapping
+    @PostMapping
     @PreAuthorize(value = "hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_DRIVER')")
     @ResponseStatus(HttpStatus.OK)
     @Operation(
@@ -122,6 +124,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     @PreAuthorize(value = "hasRole('ROLE_ADMIN')")
     @ResponseStatus(HttpStatus.OK)
+    @CheckUserActive
     @Operation(
             summary = "Удаление пользователя",
             description = "Удаление пользователя по ID. Доступно только администраторам.",
@@ -142,7 +145,8 @@ public class UserController {
     }
 
     @GetMapping("/drivers/search")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_MANAGER')")
+    @CheckUserActive
     @Operation(
             summary = "Поиск активных водителей",
             description = "Позволяет искать водителей по фамилии, имени, отчеству или организации.",
@@ -156,12 +160,19 @@ public class UserController {
             }
     )
     public ActiveDriversResponseDto searchActiveDrivers(
+            @Parameter(description = "Имя водителя", example = "Иван")
             @RequestParam(required = false) String firstname,
+
+            @Parameter(description = "Фамилия водителя", example = "Иванов")
             @RequestParam(required = false) String lastname,
+
+            @Parameter(description = "Отчество водителя", example = "Иванович")
             @RequestParam(required = false) String patronymic,
+
+            @Parameter(description = "Организация", example = "ООО \"Транспорт+\"")
             @RequestParam(required = false) String organization) {
-        //return userService.searchActiveDrivers(firstname, lastname, patronymic, organization);
-        throw new IllegalCallerException("Not implemented yet");
+
+        return userService.searchActiveDrivers(firstname, lastname, patronymic, organization);
     }
 
 }

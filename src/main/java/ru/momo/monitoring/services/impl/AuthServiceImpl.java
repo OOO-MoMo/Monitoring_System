@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import ru.momo.monitoring.exceptions.UserBadRequestException;
 import ru.momo.monitoring.security.JwtTokenProvider;
 import ru.momo.monitoring.services.AuthService;
+import ru.momo.monitoring.services.CompanyService;
 import ru.momo.monitoring.services.EmailService;
 import ru.momo.monitoring.services.RedisService;
 import ru.momo.monitoring.services.UserService;
@@ -16,6 +17,7 @@ import ru.momo.monitoring.store.dto.request.JwtRequest;
 import ru.momo.monitoring.store.dto.request.RefreshJwtRequest;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.JwtResponse;
+import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.enums.RoleName;
 
@@ -29,6 +31,7 @@ public class AuthServiceImpl implements AuthService {
     final JwtTokenProvider jwtTokenProvider;
     final EmailService emailService;
     final RedisService redisService;
+    final CompanyService companyService;
 
     @Override
     public JwtResponse login(JwtRequest loginRequest) {
@@ -51,8 +54,9 @@ public class AuthServiceImpl implements AuthService {
         String token = redisService.saveTokenWithValue(request.email());
         emailService.sendEmail(request.email(), token);
 
+        Company company = companyService.findById(request.companyId());
         RoleName role = userService.getNewUserRoleByCurrentUser(username);
-        User user = userService.saveNotConfirmedUser(request, role);
+        User user = userService.saveNotConfirmedUser(request, role, company);
 
         return createJwtResponse(user);
     }

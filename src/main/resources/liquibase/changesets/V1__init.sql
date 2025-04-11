@@ -44,15 +44,15 @@ CREATE TABLE IF NOT EXISTS users_data
     VARCHAR
 (
     255
-) NOT NULL UNIQUE,
+) UNIQUE,
     firstname VARCHAR
 (
     255
-) NOT NULL,
+) ,
     lastname VARCHAR
 (
     255
-) NOT NULL,
+) ,
     patronymic VARCHAR
 (
     255

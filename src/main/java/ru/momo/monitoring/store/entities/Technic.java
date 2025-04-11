@@ -35,7 +35,7 @@ public class Technic {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH})
+    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH}, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     User ownerId;
 
@@ -66,7 +66,11 @@ public class Technic {
     @Column(name = "next_service_date")
     private LocalDateTime nextServiceDate;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private Company company;
+
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "technics_sensors",
             joinColumns = @JoinColumn(name = "technic_id"),

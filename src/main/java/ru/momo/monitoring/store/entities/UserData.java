@@ -35,16 +35,16 @@ public class UserData {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "firstname", nullable = false)
+    @Column(name = "firstname")
     private String firstname;
 
-    @Column(name = "lastname", nullable = false)
+    @Column(name = "lastname")
     private String lastname;
 
     @Column(name = "patronymic")
     private String patronymic;
 
-    @Column(name = "phone_number", nullable = false, unique = true)
+    @Column(name = "phone_number", unique = true)
     private String phoneNumber;
 
     @Column(name = "date_of_birth")
@@ -52,9 +52,6 @@ public class UserData {
 
     @Column(name = "address")
     private String address;
-
-    @Column(name = "organization")
-    private String organization;
 
 }
 
