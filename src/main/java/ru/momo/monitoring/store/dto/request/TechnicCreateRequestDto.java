@@ -10,6 +10,8 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.validator.constraints.Length;
 import ru.momo.monitoring.store.entities.Technic;
 
+import java.util.UUID;
+
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -40,6 +42,10 @@ public class TechnicCreateRequestDto {
 
     @Schema(description = "Дополнительное описание или комментарии", example = "В отличном состоянии, регулярное обслуживание")
     String description;
+
+    @NotNull(message = "UUID не должен быть null")
+    @Schema(description = "UUID компании", example = "11111111-1111-1111-1111-111111111111")
+    UUID companyId;
 
     public static Technic mapToTechnicEntity(TechnicCreateRequestDto dto) {
         return Technic.builder()

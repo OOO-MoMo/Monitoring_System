@@ -8,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -46,20 +48,20 @@ public class User {
     @Column(name = "password", nullable = false)
     private String password;
 
-    @OneToOne(mappedBy = "user",
-            cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY,
-            orphanRemoval = true)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private UserData userData;
 
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
     private RoleName role;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "company_id")
+    private Company company;
+
     @OneToMany(mappedBy = "ownerId",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH},
-            fetch = FetchType.LAZY,
-            orphanRemoval = true)
+            fetch = FetchType.LAZY)
     List<Technic> technics;
 
     @Column(name = "created_at", nullable = false)

@@ -66,6 +66,10 @@ public class Technic {
     @Column(name = "next_service_date")
     private LocalDateTime nextServiceDate;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private Company company;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "technics_sensors",

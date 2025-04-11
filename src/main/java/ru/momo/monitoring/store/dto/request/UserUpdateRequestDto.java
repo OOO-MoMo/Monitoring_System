@@ -41,8 +41,4 @@ public class UserUpdateRequestDto {
     @Schema(description = "Адрес пользователя", example = "Москва, ул. Ленина, д. 10")
     String address;
 
-    @Size(max = 255, message = "Название организации не должно превышать 255 символов")
-    @Schema(description = "Организация", example = "ООО 'Компания'")
-    String organization;
-
 }

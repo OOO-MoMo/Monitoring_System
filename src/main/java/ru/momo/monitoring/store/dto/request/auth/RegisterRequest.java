@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.UUID;
+
 @Schema(description = "Запрос на регистрацию нового пользователя")
 public record RegisterRequest(
 
@@ -21,7 +23,11 @@ public record RegisterRequest(
         @JsonProperty(value = "password_confirmation")
         @NotNull(message = "Подтверждение пароля не должно быть пустым")
         @Schema(description = "Подтверждение пароля", example = "securePassword123")
-        String passwordConfirmation
+        String passwordConfirmation,
+
+        @NotNull(message = "UUID не должен быть null")
+        @Schema(description = "UUID компании", example = "11111111-1111-1111-1111-111111111111")
+        UUID companyId
 
 ) {
 }

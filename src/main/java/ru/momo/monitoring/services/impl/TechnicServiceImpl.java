@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.exceptions.ResourceNotFoundException;
+import ru.momo.monitoring.services.CompanyService;
 import ru.momo.monitoring.services.SensorFactory;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.services.UserService;
@@ -18,6 +19,7 @@ import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
+import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
@@ -42,6 +44,8 @@ public class TechnicServiceImpl implements TechnicService {
 
     private final UserService userService;
 
+    private final CompanyService companyService;
+
     @Override
     @Transactional(readOnly = true)
     public TechnicResponseDto getTechById(UUID id) {
@@ -52,9 +56,14 @@ public class TechnicServiceImpl implements TechnicService {
     @Transactional
     public TechnicCreatedResponseDto create(TechnicCreateRequestDto request) {
         Technic technic = TechnicCreateRequestDto.mapToTechnicEntity(request);
+        Company company = companyService.findById(technic.getCompany().getId());
 
         validateNewTechnic(request);
 
+        technic.setCompany(company);
+        company.addTechnic(technic);
+
+        companyService.save(company);
         technicRepository.save(technic);
 
         return TechnicCreatedResponseDto.MapFromEntity(technic);

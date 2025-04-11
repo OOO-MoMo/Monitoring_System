@@ -45,6 +45,8 @@ public class TechnicResponseDto {
     @JsonProperty(value = "next_service_date")
     LocalDateTime nextServiceDate;
 
+    CompanyResponseDto company;
+
     public static TechnicResponseDto mapFromEntity(Technic technic) {
         return TechnicResponseDto
                 .builder()
@@ -59,6 +61,7 @@ public class TechnicResponseDto {
                 .active(technic.getIsActive())
                 .lastServiceDate(technic.getLastServiceDate())
                 .nextServiceDate(technic.getNextServiceDate())
+                .company(CompanyResponseDto.mapFromEntity(technic.getCompany()))
                 .build();
     }
 
