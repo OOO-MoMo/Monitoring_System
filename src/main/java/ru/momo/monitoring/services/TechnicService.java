@@ -1,7 +1,5 @@
 package ru.momo.monitoring.services;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicPutDriverRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
@@ -11,6 +9,7 @@ import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface TechnicService {
@@ -23,7 +22,12 @@ public interface TechnicService {
 
     void delete(UUID id);
 
-    Page<TechnicResponseDto> getTechByUserId(UUID id, Pageable pageable, String brand, String model);
+    List<TechnicResponseDto> getFilteredTechnics(UUID companyId,
+                                                 UUID ownerId,
+                                                 Integer year,
+                                                 String brand,
+                                                 String model,
+                                                 Boolean isActive);
 
     TechnicDataResponseDto getSensorsData(UUID id);
 

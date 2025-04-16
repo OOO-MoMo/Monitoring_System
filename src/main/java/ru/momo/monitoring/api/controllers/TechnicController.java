@@ -1,12 +1,11 @@
 package ru.momo.monitoring.api.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +31,9 @@ import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
+import ru.momo.monitoring.store.entities.Technic;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -108,29 +109,40 @@ public class TechnicController {
         return technicService.putNewDriver(request);
     }
 
-    @GetMapping("/")
-    public ResponseEntity<?> getByUserId(
-            @RequestParam(name = "userId") UUID userId,
-            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
-            @RequestParam(name = "offset", required = false, defaultValue = "20") Integer offset,
-            @RequestParam(name = "brand", required = false, defaultValue = "") String brand,
-            @RequestParam(name = "model", required = false, defaultValue = "") String model) {
-        Page<TechnicResponseDto> response = technicService.getTechByUserId(
-                userId,
-                PageRequest.of(page, offset),
-                brand,
-                model
-        );
+    @GetMapping("/search")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Фильтрация техники",
+            description = "Позволяет фильтровать список техники по компании, водителю, году выпуска, бренду, модели и активности. Доступно только для менеджеров.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Список техники успешно получен",
+                            content = @Content(schema = @Schema(implementation = Technic.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public List<TechnicResponseDto> searchTechnics(
+            @Parameter(description = "ID компании", example = "aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+            @RequestParam(required = false) UUID companyId,
 
-        if (response.isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.NO_CONTENT)
-                    .build();
-        } else {
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body(response);
-        }
+            @Parameter(description = "ID владельца (водителя)", example = "11111111-1111-1111-1111-111111111111")
+            @RequestParam(required = false) UUID ownerId,
+
+            @Parameter(description = "Год выпуска техники", example = "2020")
+            @RequestParam(required = false) Integer year,
+
+            @Parameter(description = "Бренд техники", example = "JCB")
+            @RequestParam(required = false) String brand,
+
+            @Parameter(description = "Модель техники", example = "3CX")
+            @RequestParam(required = false) String model,
+
+            @Parameter(description = "Активна ли техника", example = "true")
+            @RequestParam(required = false) Boolean isActive
+    ) {
+        return technicService.getFilteredTechnics(companyId, ownerId, year, brand, model, isActive);
     }
 
     @PutMapping("/")
