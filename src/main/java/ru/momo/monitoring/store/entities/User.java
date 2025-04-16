@@ -1,5 +1,6 @@
 package ru.momo.monitoring.store.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -62,6 +63,7 @@ public class User {
     @OneToMany(mappedBy = "ownerId",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH},
             fetch = FetchType.LAZY)
+    @JsonManagedReference
     List<Technic> technics;
 
     @Column(name = "created_at", nullable = false)

@@ -3,6 +3,7 @@ package ru.momo.monitoring.store.repositories;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 import ru.momo.monitoring.exceptions.EntityDuplicationException;
 import ru.momo.monitoring.store.entities.Technic;
@@ -13,7 +14,7 @@ import java.util.UUID;
 import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
 @Repository
-public interface TechnicRepository extends JpaRepository<Technic, UUID> {
+public interface TechnicRepository extends JpaRepository<Technic, UUID>, JpaSpecificationExecutor<Technic> {
 
     Page<Technic> findAllByOwnerIdIdAndBrandContainingIgnoreCaseAndModelContainingIgnoreCase(
             UUID ownerId,
