@@ -221,16 +221,24 @@ class UserServiceImplTest {
 
     @Test
     void searchActiveDrivers_ShouldReturnFilteredDrivers() {
+        Company company = new Company();
+        company.setName("company");
+
         User user1 = new User();
-        user1.setCompany(new Company());
+        user1.setCompany(company);
         User user2 = new User();
-        user2.setCompany(new Company());
+        user2.setCompany(company);
         List<User> users = List.of(user1, user2);
 
+        User manager = new User();
+        manager.setEmail("manager@example.com");
+        manager.setCompany(company);
+
         when(userRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(users);
+        when(userService.getByEmail(any())).thenReturn(manager);
 
         ActiveDriversResponseDto result = userService.searchActiveDrivers(
-                "Иван", "Иванов", "Иванович", "ООО Ромашка"
+                "Иван", "Иванов", "Иванович", manager.getEmail()
         );
 
         assertEquals(2, result.activeDrivers().size());

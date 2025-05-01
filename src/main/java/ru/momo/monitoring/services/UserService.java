@@ -42,7 +42,7 @@ public interface UserService {
             String firstname,
             String lastname,
             String patronymic,
-            String organization
+            String managerEmail
     );
 
 }

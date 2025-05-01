@@ -28,6 +28,6 @@ public class UserSpecifications {
     }
 
     public static Specification<User> hasOrganization(String organization) {
-        return (root, query, cb) -> cb.like(cb.lower(root.join("userData").get("organization")), "%" + organization.toLowerCase() + "%");
+        return (root, query, cb) -> cb.like(cb.lower(root.join("company").get("name")), "%" + organization.toLowerCase() + "%");
     }
 }
