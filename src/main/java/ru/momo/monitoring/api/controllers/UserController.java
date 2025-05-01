@@ -160,6 +160,8 @@ public class UserController {
             }
     )
     public ActiveDriversResponseDto searchActiveDrivers(
+            Principal principal,
+
             @Parameter(description = "Имя водителя", example = "Иван")
             @RequestParam(required = false) String firstname,
 
@@ -167,12 +169,10 @@ public class UserController {
             @RequestParam(required = false) String lastname,
 
             @Parameter(description = "Отчество водителя", example = "Иванович")
-            @RequestParam(required = false) String patronymic,
+            @RequestParam(required = false) String patronymic
+    ) {
 
-            @Parameter(description = "Организация", example = "ООО \"Транспорт+\"")
-            @RequestParam(required = false) String organization) {
-
-        return userService.searchActiveDrivers(firstname, lastname, patronymic, organization);
+        return userService.searchActiveDrivers(firstname, lastname, patronymic, principal.getName());
     }
 
 }

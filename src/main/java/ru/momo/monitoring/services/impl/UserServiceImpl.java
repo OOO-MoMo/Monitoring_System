@@ -144,8 +144,11 @@ public class UserServiceImpl implements UserService {
             String firstname,
             String lastname,
             String patronymic,
-            String organization
+            String managerEmail
     ) {
+        User manager = getByEmail(managerEmail);
+        String organization = manager.getCompany().getName();
+
         Specification<User> spec = Specification.where(UserSpecifications.isActiveAndConfirmedDriver());
 
         if (firstname != null && !firstname.isBlank()) {
@@ -168,7 +171,7 @@ public class UserServiceImpl implements UserService {
                 Sort.Order.asc("userData.firstname"),
                 Sort.Order.asc("userData.lastname"),
                 Sort.Order.asc("userData.patronymic"),
-                Sort.Order.asc("userData.organization")
+                Sort.Order.asc("company.name")
         ));
 
         List<UserResponseDto> result = users.stream().map(UserResponseDto::mapFromEntity).toList();
