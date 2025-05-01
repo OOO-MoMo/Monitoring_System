@@ -3,6 +3,7 @@ package ru.momo.monitoring.services;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
+import ru.momo.monitoring.store.dto.response.CompanyIdResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 import ru.momo.monitoring.store.entities.Company;
@@ -44,5 +45,7 @@ public interface UserService {
             String patronymic,
             String managerEmail
     );
+
+    CompanyIdResponseDto getCompanyIdForManager(String email);
 
 }
