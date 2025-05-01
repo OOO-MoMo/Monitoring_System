@@ -13,6 +13,7 @@ import ru.momo.monitoring.services.impl.UserServiceImpl;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
+import ru.momo.monitoring.store.dto.response.CompanyIdResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 import ru.momo.monitoring.store.entities.Company;
@@ -243,6 +244,25 @@ class UserServiceImplTest {
 
         assertEquals(2, result.activeDrivers().size());
         verify(userRepository).findAll(any(Specification.class), any(Sort.class));
+    }
+
+    @Test
+    void getCompanyIdForManager_shouldReturnCompanyId() {
+        String email = "manager@example.com";
+        UUID id = UUID.randomUUID();
+
+        Company company = new Company();
+        company.setId(id);
+
+        User manager = new User();
+        manager.setEmail(email);
+        manager.setCompany(company);
+
+        when(userService.getByEmail(email)).thenReturn(manager);
+
+        CompanyIdResponseDto result = userService.getCompanyIdForManager(email);
+
+        assertEquals(id, result.uuid());
     }
 
 }
