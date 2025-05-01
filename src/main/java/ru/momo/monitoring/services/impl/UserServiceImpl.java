@@ -11,6 +11,7 @@ import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
+import ru.momo.monitoring.store.dto.response.CompanyIdResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 import ru.momo.monitoring.store.entities.Company;
@@ -177,6 +178,13 @@ public class UserServiceImpl implements UserService {
         List<UserResponseDto> result = users.stream().map(UserResponseDto::mapFromEntity).toList();
 
         return new ActiveDriversResponseDto(result);
+    }
+
+    @Override
+    public CompanyIdResponseDto getCompanyIdForManager(String email) {
+        User manager = getByEmail(email);
+
+        return new CompanyIdResponseDto(manager.getCompany().getId());
     }
 
     @Override

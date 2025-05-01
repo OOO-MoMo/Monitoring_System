@@ -24,6 +24,7 @@ import ru.momo.monitoring.exceptions.ExceptionBody;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
+import ru.momo.monitoring.store.dto.response.CompanyIdResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
 
@@ -173,6 +174,25 @@ public class UserController {
     ) {
 
         return userService.searchActiveDrivers(firstname, lastname, patronymic, principal.getName());
+    }
+
+    @GetMapping("/current/company")
+    @PreAuthorize("hasRole('ROLE_MANAGER')")
+    @CheckUserActive
+    @Operation(
+            summary = "Возвращает id фирмы. Доступно только для менеджеров",
+            description = "Возвращает id фирмы, к которой привязан менеджер. Доступно только для менеджеров",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Результаты поиска успешно получены",
+                            content = @Content(schema = @Schema(implementation = CompanyIdResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public CompanyIdResponseDto getCurrentCompany(Principal principal) {
+        return userService.getCompanyIdForManager(principal.getName());
     }
 
 }
