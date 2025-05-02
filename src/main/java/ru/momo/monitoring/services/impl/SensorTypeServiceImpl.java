@@ -47,4 +47,9 @@ public class SensorTypeServiceImpl implements SensorTypeService {
         return sensorTypeMapper.toDto(sensorTypeRepository.getByIdOrThrow(id));
     }
 
+    @Override
+    public SensorType getSensorTypeEntityById(UUID id) {
+        return sensorTypeRepository.getByIdOrThrow(id);
+    }
+
 }

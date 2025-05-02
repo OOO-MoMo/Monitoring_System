@@ -8,9 +8,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,7 +18,7 @@ import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 @Setter
@@ -72,12 +71,7 @@ public class Technic {
     @JoinColumn(name = "company_id")
     private Company company;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "technics_sensors",
-            joinColumns = @JoinColumn(name = "technic_id"),
-            inverseJoinColumns = @JoinColumn(name = "sensor_id")
-    )
-    private Set<Sensor> sensors;
+    @OneToMany(mappedBy = "technic")
+    private List<Sensor> sensors;
 
 }

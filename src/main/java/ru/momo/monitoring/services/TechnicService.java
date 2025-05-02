@@ -8,6 +8,7 @@ import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
+import ru.momo.monitoring.store.entities.Technic;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +23,7 @@ public interface TechnicService {
 
     void delete(UUID id);
 
-    List<TechnicResponseDto> getFilteredTechnics(UUID companyId,
+    List<TechnicResponseDto> getFilteredTechnics(String email,
                                                  UUID ownerId,
                                                  Integer year,
                                                  String brand,
@@ -32,5 +33,9 @@ public interface TechnicService {
     TechnicDataResponseDto getSensorsData(UUID id);
 
     TechnicPutDriverResponseDto putNewDriver(TechnicPutDriverRequestDto request);
+
+    Technic findByCompanyAndId(UUID companyId, UUID id);
+
+    void save(Technic technic);
 
 }

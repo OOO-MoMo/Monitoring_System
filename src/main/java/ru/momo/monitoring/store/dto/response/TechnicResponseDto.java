@@ -7,10 +7,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.Technic;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -47,6 +50,8 @@ public class TechnicResponseDto {
 
     CompanyResponseDto company;
 
+    List<UUID> sensors;
+
     public static TechnicResponseDto mapFromEntity(Technic technic) {
         return TechnicResponseDto
                 .builder()
@@ -62,6 +67,7 @@ public class TechnicResponseDto {
                 .lastServiceDate(technic.getLastServiceDate())
                 .nextServiceDate(technic.getNextServiceDate())
                 .company(CompanyResponseDto.mapFromEntity(technic.getCompany()))
+                .sensors(technic.getSensors().stream().map(Sensor::getId).collect(Collectors.toList()))
                 .build();
     }
 
