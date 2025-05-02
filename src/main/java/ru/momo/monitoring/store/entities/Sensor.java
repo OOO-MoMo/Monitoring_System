@@ -1,5 +1,6 @@
 package ru.momo.monitoring.store.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,6 +14,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDate;
@@ -53,6 +55,7 @@ public class Sensor {
     private LocalDate productionDate;
 
     @Column(name = "installation_date")
+    @CreationTimestamp
     private LocalDate installationDate;
 
     @Column(name = "is_active", nullable = false)
@@ -64,4 +67,10 @@ public class Sensor {
 
     @Column(name = "calibration_due_date")
     private LocalDate calibrationDueDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "technic_id")
+    @JsonBackReference
+    private Technic technic;
+
 }

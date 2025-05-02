@@ -5,6 +5,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.momo.monitoring.exceptions.SensorBadRequestException;
 import ru.momo.monitoring.services.CompanyService;
 import ru.momo.monitoring.services.SensorFactory;
 import ru.momo.monitoring.services.TechnicService;
@@ -66,15 +67,16 @@ public class TechnicServiceImpl implements TechnicService {
     }
 
     @Override
-    public List<TechnicResponseDto> getFilteredTechnics(UUID companyId,
+    public List<TechnicResponseDto> getFilteredTechnics(String email,
                                                         UUID ownerId,
                                                         Integer year,
                                                         String brand,
                                                         String model,
                                                         Boolean isActive) {
+        User manager = userService.getByEmail(email);
 
         Specification<Technic> spec = TechnicSpecification.filterTechnics(
-                companyId, ownerId, year, brand, model, isActive
+                manager.getCompany().getId(), ownerId, year, brand, model, isActive
         );
 
         List<Technic> technics = technicRepository.findAll(spec);
@@ -115,6 +117,24 @@ public class TechnicServiceImpl implements TechnicService {
         technicRepository.save(technic);
 
         return new TechnicPutDriverResponseDto(request.technicId(), request.driverId());
+    }
+
+    @Override
+    public Technic findByCompanyAndId(UUID companyId, UUID id) {
+        Technic technic = technicRepository.findByIdOrThrow(id);
+
+        if (!technic.getCompany().getId().equals(companyId)) {
+            throw new SensorBadRequestException(
+                    "Invalid company id. Technic id: " + technic.getId() + " is not in this company."
+            );
+        }
+
+        return technic;
+    }
+
+    @Override
+    public void save(Technic technic) {
+        technicRepository.save(technic);
     }
 
     @Override

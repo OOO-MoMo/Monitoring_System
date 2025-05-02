@@ -116,7 +116,7 @@ public class SensorTypeController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize(value = "hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     @CheckUserActive
     @ResponseStatus(HttpStatus.OK)
     @Operation(

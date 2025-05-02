@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,12 +34,14 @@ import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Technic;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/technic")
+@Tag(name = "Техника", description = "API для управления техникой")
 public class TechnicController {
 
     private final TechnicService technicService;
@@ -126,8 +129,7 @@ public class TechnicController {
             }
     )
     public List<TechnicResponseDto> searchTechnics(
-            @Parameter(description = "ID компании", example = "aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-            @RequestParam(required = false) UUID companyId,
+            Principal principal,
 
             @Parameter(description = "ID владельца (водителя)", example = "11111111-1111-1111-1111-111111111111")
             @RequestParam(required = false) UUID ownerId,
@@ -144,7 +146,7 @@ public class TechnicController {
             @Parameter(description = "Активна ли техника", example = "true")
             @RequestParam(required = false) Boolean isActive
     ) {
-        return technicService.getFilteredTechnics(companyId, ownerId, year, brand, model, isActive);
+        return technicService.getFilteredTechnics(principal.getName(), ownerId, year, brand, model, isActive);
     }
 
     @PutMapping("/")

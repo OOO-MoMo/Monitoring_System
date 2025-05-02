@@ -1,18 +1,19 @@
 package ru.momo.monitoring.services;
 
+import jakarta.validation.Valid;
+import ru.momo.monitoring.store.dto.request.CreateSensorRequest;
+import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
+import ru.momo.monitoring.store.dto.response.SensorDto;
+import ru.momo.monitoring.store.dto.response.SensorsDto;
+
 public interface SensorService {
 
-/*    @Transactional(readOnly = true)
-    SensorResponseDto getSensorById(Long id);
+    SensorDto registerSensor(@Valid CreateSensorRequest request, String email);
 
-    @Transactional(readOnly = false)
-    SensorCreatedResponseDto create(SensorCreateRequestDto request);
+    void assignToTechnic(@Valid SensorAssignmentRequest request, String email);
 
-    @Transactional(readOnly = false)
-    SensorToTechnicResponseDto actionSensorToTechnic(SensorToTechnicRequestDto request);
+    void unassignFromTechnic(@Valid SensorAssignmentRequest request, String email);
 
-    @Transactional(readOnly = true)
-    List<SensorResponseDto> getSensorByTechnicId(UUID technicId);
+    SensorsDto getAllCompanySensors(String email);
 
-    void delete(Long id);*/
 }
