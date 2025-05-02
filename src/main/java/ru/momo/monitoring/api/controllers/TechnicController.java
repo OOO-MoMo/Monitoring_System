@@ -111,6 +111,8 @@ public class TechnicController {
 
     @GetMapping("/search")
     @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize(value = "hasRole('ROLE_MANAGER')")
+    @CheckUserActive
     @Operation(
             summary = "Фильтрация техники",
             description = "Позволяет фильтровать список техники по компании, водителю, году выпуска, бренду, модели и активности. Доступно только для менеджеров.",

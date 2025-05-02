@@ -2,28 +2,13 @@ package ru.momo.monitoring.services.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.momo.monitoring.exceptions.SensorBadRequestException;
 import ru.momo.monitoring.services.SensorService;
-import ru.momo.monitoring.store.dto.request.SensorCreateRequestDto;
-import ru.momo.monitoring.store.dto.request.SensorToTechnicRequestDto;
-import ru.momo.monitoring.store.dto.response.SensorCreatedResponseDto;
-import ru.momo.monitoring.store.dto.response.SensorResponseDto;
-import ru.momo.monitoring.store.dto.response.SensorToTechnicResponseDto;
-import ru.momo.monitoring.store.entities.Sensor;
-import ru.momo.monitoring.store.entities.Technic;
-import ru.momo.monitoring.store.repositories.SensorRepository;
-import ru.momo.monitoring.store.repositories.TechnicRepository;
-
-import java.util.List;
-import java.util.UUID;
-
-import static ru.momo.monitoring.exceptions.ResourceNotFoundException.resourceNotFoundExceptionSupplier;
 
 @Service
 @RequiredArgsConstructor
 public class SensorServiceImpl implements SensorService {
 
-    private final SensorRepository sensorRepository;
+/*    private final SensorRepository sensorRepository;
     private final TechnicRepository technicRepository;
 
     @Override
@@ -124,6 +109,6 @@ public class SensorServiceImpl implements SensorService {
                 .orElseThrow(
                         resourceNotFoundExceptionSupplier("Sensor with id = %d is not exist", id)
                 );
-    }
+    }*/
 
 }
