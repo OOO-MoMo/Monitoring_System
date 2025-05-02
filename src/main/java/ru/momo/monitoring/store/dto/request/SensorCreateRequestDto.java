@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.validator.constraints.Length;
-import ru.momo.monitoring.store.entities.Sensor;
 
 @Data
 @Builder
@@ -21,11 +20,11 @@ public class SensorCreateRequestDto {
     @Length(max = 255, message = "Data type length must be smaller than 255 symbols")
     String dataType;
 
-    public static Sensor mapToEntity(SensorCreateRequestDto request) {
+/*    public static Sensor mapToEntity(SensorCreateRequestDto request) {
         return Sensor
                 .builder()
                 .type(request.getType())
                 .dataType(request.getDataType())
                 .build();
-    }
+    }*/
 }

@@ -1,6 +1,7 @@
 package ru.momo.monitoring.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,14 +12,12 @@ import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicPutDriverRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
-import ru.momo.monitoring.store.dto.response.DataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Company;
-import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.repositories.SensorRepository;
@@ -92,7 +91,7 @@ public class TechnicServiceImpl implements TechnicService {
     @Override
     @Transactional(readOnly = true)
     public TechnicDataResponseDto getSensorsData(UUID id) {
-        Technic technic = technicRepository.findByIdOrThrow(id);
+/*        Technic technic = technicRepository.findByIdOrThrow(id);
         List<Sensor> technicSensors = sensorRepository.findByTechnicId(id);
 
         List<DataResponseDto> data = technicSensors
@@ -101,7 +100,9 @@ public class TechnicServiceImpl implements TechnicService {
                 .map(DataResponseDto::mapFromEntity)
                 .toList();
 
-        return new TechnicDataResponseDto(technic.getModel(), technic.getBrand(), data);
+        return new TechnicDataResponseDto(technic.getModel(), technic.getBrand(), data);*/
+
+        throw new NotImplementedException();
     }
 
     @Override

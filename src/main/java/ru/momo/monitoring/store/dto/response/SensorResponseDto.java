@@ -1,8 +1,11 @@
 package ru.momo.monitoring.store.dto.response;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import ru.momo.monitoring.store.entities.Sensor;
 
 @Data
 @Builder
@@ -15,11 +18,11 @@ public class SensorResponseDto {
 
     String dataType;
 
-    public static SensorResponseDto mapFromEntity(Sensor sensor) {
+/*    public static SensorResponseDto mapFromEntity(Sensor sensor) {
         return SensorResponseDto.builder()
                 .type(sensor.getType())
                 .dataType(sensor.getDataType())
                 .build();
-    }
+    }*/
 
 }
