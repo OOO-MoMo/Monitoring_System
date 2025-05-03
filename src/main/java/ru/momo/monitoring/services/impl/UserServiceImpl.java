@@ -10,10 +10,10 @@ import ru.momo.monitoring.exceptions.UserBadRequestException;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
-import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
 import ru.momo.monitoring.store.dto.response.CompanyIdResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
+import ru.momo.monitoring.store.dto.response.UsersResponseDto;
 import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
@@ -141,7 +141,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ActiveDriversResponseDto searchActiveDrivers(
+    public UsersResponseDto searchActiveDrivers(
             String firstname,
             String lastname,
             String patronymic,
@@ -152,32 +152,17 @@ public class UserServiceImpl implements UserService {
 
         Specification<User> spec = Specification.where(UserSpecifications.isActiveAndConfirmedDriver());
 
-        if (firstname != null && !firstname.isBlank()) {
-            spec = spec.and(UserSpecifications.hasFirstname(firstname));
-        }
-
-        if (lastname != null && !lastname.isBlank()) {
-            spec = spec.and(UserSpecifications.hasLastname(lastname));
-        }
-
-        if (patronymic != null && !patronymic.isBlank()) {
-            spec = spec.and(UserSpecifications.hasPatronymic(patronymic));
-        }
+        spec = updateSpecificationByInitials(firstname, lastname, patronymic, spec);
 
         if (organization != null && !organization.isBlank()) {
-            spec = spec.and(UserSpecifications.hasOrganization(organization));
+            spec = spec.and(UserSpecifications.hasOrganizationByName(organization));
         }
 
-        List<User> users = userRepository.findAll(spec, Sort.by(
-                Sort.Order.asc("userData.firstname"),
-                Sort.Order.asc("userData.lastname"),
-                Sort.Order.asc("userData.patronymic"),
-                Sort.Order.asc("company.name")
-        ));
+        List<User> users = getUsersBySpecification(spec);
 
         List<UserResponseDto> result = users.stream().map(UserResponseDto::mapFromEntity).toList();
 
-        return new ActiveDriversResponseDto(result);
+        return new UsersResponseDto(result);
     }
 
     @Override
@@ -185,6 +170,34 @@ public class UserServiceImpl implements UserService {
         User manager = getByEmail(email);
 
         return new CompanyIdResponseDto(manager.getCompany().getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UsersResponseDto searchManagers(
+            UUID companyId,
+            String firstname,
+            String lastname,
+            String patronymic,
+            Boolean isActive
+    ) {
+        Specification<User> spec = Specification.where(UserSpecifications.isActiveAndConfirmedManager(isActive));
+
+        return getUsersResponseDto(companyId, firstname, lastname, patronymic, spec);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UsersResponseDto searchDrivers(
+            UUID companyId,
+            String firstname,
+            String lastname,
+            String patronymic,
+            Boolean isActive
+    ) {
+        Specification<User> spec = Specification.where(UserSpecifications.isActiveAndConfirmedDriver(isActive));
+
+        return getUsersResponseDto(companyId, firstname, lastname, patronymic, spec);
     }
 
     @Override
@@ -212,6 +225,55 @@ public class UserServiceImpl implements UserService {
         Optional.ofNullable(value)
                 .filter(v -> !(v instanceof String) || !((String) v).isBlank())
                 .ifPresent(setter);
+    }
+
+    private List<User> getUsersBySpecification(Specification<User> spec) {
+        List<User> users = userRepository.findAll(spec, Sort.by(
+                Sort.Order.asc("userData.firstname"),
+                Sort.Order.asc("userData.lastname"),
+                Sort.Order.asc("userData.patronymic"),
+                Sort.Order.asc("company.name")
+        ));
+        return users;
+    }
+
+    private Specification<User> updateSpecificationByInitials(
+            String firstname,
+            String lastname,
+            String patronymic,
+            Specification<User> spec
+    ) {
+        if (firstname != null && !firstname.isBlank()) {
+            spec = spec.and(UserSpecifications.hasFirstname(firstname));
+        }
+
+        if (lastname != null && !lastname.isBlank()) {
+            spec = spec.and(UserSpecifications.hasLastname(lastname));
+        }
+
+        if (patronymic != null && !patronymic.isBlank()) {
+            spec = spec.and(UserSpecifications.hasPatronymic(patronymic));
+        }
+
+        return spec;
+    }
+
+    private UsersResponseDto getUsersResponseDto(
+            UUID companyId,
+            String firstname,
+            String lastname,
+            String patronymic,
+            Specification<User> spec
+    ) {
+        spec = spec.and(UserSpecifications.hasOrganizationById(companyId));
+
+        updateSpecificationByInitials(firstname, lastname, patronymic, spec);
+
+        List<User> users = getUsersBySpecification(spec);
+
+        List<UserResponseDto> result = users.stream().map(UserResponseDto::mapFromEntity).toList();
+
+        return new UsersResponseDto(result);
     }
 
 }
