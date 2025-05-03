@@ -38,4 +38,8 @@ public interface TechnicService {
 
     void save(Technic technic);
 
+    List<TechnicResponseDto> getAllTechnicsByCompanyId(UUID companyId);
+
+    List<TechnicResponseDto> getTechnicsForDriver(String driverEmail);
+
 }

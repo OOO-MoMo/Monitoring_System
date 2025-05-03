@@ -26,8 +26,10 @@ import ru.momo.monitoring.store.repositories.TechnicRepository;
 import ru.momo.monitoring.store.repositories.specification.TechnicSpecification;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -160,6 +162,35 @@ public class TechnicServiceImpl implements TechnicService {
         Technic deletedTechnic = technicRepository.findByIdOrThrow(id);
         technicRepository.delete(deletedTechnic);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TechnicResponseDto> getAllTechnicsByCompanyId(UUID companyId) {
+        companyService.findById(companyId);
+
+        List<Technic> technics = technicRepository.findByCompanyId(companyId);
+
+        return technics.stream()
+                .map(TechnicResponseDto::mapFromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TechnicResponseDto> getTechnicsForDriver(String driverEmail) {
+        User driver = userService.getByEmail(driverEmail);
+
+        List<Technic> driverTechnics = driver.getTechnics();
+
+        if (driverTechnics == null) {
+            return Collections.emptyList();
+        }
+
+        return driverTechnics.stream()
+                .map(TechnicResponseDto::mapFromEntity)
+                .collect(Collectors.toList());
+    }
+
 
     private void validateNewTechnic(TechnicCreateRequestDto request) {
         technicRepository.throwIfExistWithSameSerialNumber(request.getSerialNumber());

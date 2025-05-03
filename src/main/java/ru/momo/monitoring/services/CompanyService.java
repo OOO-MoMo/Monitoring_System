@@ -19,6 +19,8 @@ public interface CompanyService {
 
     CompanyResponseDto update(CompanyUpdateRequestDto request);
 
+    CompanyResponseDto getCompanyById(UUID id);
+
     Company findById(UUID id);
 
     void save(Company company);
