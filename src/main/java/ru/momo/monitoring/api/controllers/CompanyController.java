@@ -102,7 +102,7 @@ public class CompanyController {
                             content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
             }
     )
-    public void deleteUser(
+    public void deleteCompany(
             @Parameter(description = "UUID фирмы", required = true)
             @PathVariable UUID id) {
         companyService.delete(id);
@@ -124,9 +124,34 @@ public class CompanyController {
                             content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
             }
     )
-    public CompanyResponseDto updateUser(
+    public CompanyResponseDto updateCompany(
             @RequestBody @Validated CompanyUpdateRequestDto request) {
         return companyService.update(request);
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Получение фирмы по ID",
+            description = "Возвращает детали конкретной фирмы по ее UUID. Доступно только для администраторов.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Данные фирмы успешно получены",
+                            content = @Content(schema = @Schema(implementation = CompanyResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Фирма с указанным ID не найдена",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public CompanyResponseDto getCompanyById(
+            @Parameter(description = "UUID фирмы", required = true, example = "a1b2c3d4-e5f6-7890-1234-567890abcdef")
+            @PathVariable UUID id
+    ) {
+        return companyService.getCompanyById(id);
     }
 
 }

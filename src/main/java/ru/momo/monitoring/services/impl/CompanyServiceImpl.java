@@ -97,7 +97,15 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
+    public CompanyResponseDto getCompanyById(UUID id) {
+        Company company = companyRepository.findByIdOrThrow(id);
+        
+        return CompanyResponseDto.mapFromEntity(company);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Company findById(UUID id) {
         return companyRepository.findByIdOrThrow(id);
     }

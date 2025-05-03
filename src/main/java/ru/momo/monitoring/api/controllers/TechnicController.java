@@ -2,6 +2,7 @@ package ru.momo.monitoring.api.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -147,6 +148,55 @@ public class TechnicController {
             @RequestParam(required = false) Boolean isActive
     ) {
         return technicService.getFilteredTechnics(principal.getName(), ownerId, year, brand, model, isActive);
+    }
+
+    @GetMapping("/company/{companyId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @ResponseStatus(HttpStatus.OK)
+    @CheckUserActive
+    @Operation(
+            summary = "Получение всей техники по ID компании",
+            description = "Возвращает список всей техники, принадлежащей указанной компании. Доступно только для администраторов.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Список техники успешно получен",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = TechnicResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Компания с указанным ID не найдена",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public List<TechnicResponseDto> getAllTechnicsByCompany(
+            @Parameter(description = "ID компании, технику которой нужно получить", required = true, example = "a1b2c3d4-e5f6-7890-1234-567890abcdef")
+            @PathVariable UUID companyId
+    ) {
+        return technicService.getAllTechnicsByCompanyId(companyId);
+    }
+
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('ROLE_DRIVER')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Получение списка своей техники (для водителя)",
+            description = """
+                    Возвращает список техники, закрепленной за текущим аутентифицированным водителем. 
+                    Доступно только для пользователей с ролью водителя.
+                    """,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Список техники успешно получен",
+                            content = @Content(mediaType = "application/json",
+                                    array = @ArraySchema(schema = @Schema(implementation = TechnicResponseDto.class)))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав (пользователь не водитель или не активен)",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+            }
+    )
+    public List<TechnicResponseDto> getMyTechnics(Principal principal) {
+        return technicService.getTechnicsForDriver(principal.getName());
     }
 
     @PutMapping("/")
