@@ -12,10 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.momo.monitoring.services.impl.UserServiceImpl;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
-import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
 import ru.momo.monitoring.store.dto.response.CompanyIdResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
+import ru.momo.monitoring.store.dto.response.UsersResponseDto;
 import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.UserData;
@@ -238,7 +238,7 @@ class UserServiceImplTest {
         when(userRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(users);
         when(userService.getByEmail(any())).thenReturn(manager);
 
-        ActiveDriversResponseDto result = userService.searchActiveDrivers(
+        UsersResponseDto result = userService.searchActiveDrivers(
                 "Иван", "Иванов", "Иванович", manager.getEmail()
         );
 

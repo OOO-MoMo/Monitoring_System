@@ -23,10 +23,10 @@ import ru.momo.monitoring.annotations.CheckUserActive;
 import ru.momo.monitoring.exceptions.ExceptionBody;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
-import ru.momo.monitoring.store.dto.response.ActiveDriversResponseDto;
 import ru.momo.monitoring.store.dto.response.CompanyIdResponseDto;
 import ru.momo.monitoring.store.dto.response.UserResponseDto;
 import ru.momo.monitoring.store.dto.response.UserRoleResponseDto;
+import ru.momo.monitoring.store.dto.response.UsersResponseDto;
 
 import java.security.Principal;
 import java.util.UUID;
@@ -145,12 +145,14 @@ public class UserController {
         userService.delete(id);
     }
 
-    @GetMapping("/drivers/search")
+    @GetMapping("/drivers/active/search")
     @PreAuthorize("hasRole('ROLE_MANAGER')")
     @CheckUserActive
     @Operation(
             summary = "Поиск активных водителей",
-            description = "Позволяет искать водителей по фамилии, имени, отчеству или организации.",
+            description = """
+                    Позволяет искать водителей по фамилии, имени, отчеству или организации. Метод предназначен для менеджеров.
+                    """,
             responses = {
                     @ApiResponse(responseCode = "200", description = "Результаты поиска успешно получены",
                             content = @Content(schema = @Schema(implementation = UserResponseDto.class))),
@@ -160,7 +162,7 @@ public class UserController {
                             content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
             }
     )
-    public ActiveDriversResponseDto searchActiveDrivers(
+    public UsersResponseDto searchActiveDrivers(
             Principal principal,
 
             @Parameter(description = "Имя водителя", example = "Иван")
@@ -193,6 +195,99 @@ public class UserController {
     )
     public CompanyIdResponseDto getCurrentCompany(Principal principal) {
         return userService.getCompanyIdForManager(principal.getName());
+    }
+
+    @GetMapping("/managers/search")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @CheckUserActive
+    @Operation(
+            summary = "Поиск менеджеров.",
+            description = """
+                    Позволяет искать менеджеров по принадлежности к конкретной организации, имени, фамилии, отчеству.
+                    Имеется фильтр на активных/неактивных пользователей. Метод предназначен для админов.
+                    """,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Результаты поиска успешно получены",
+                            content = @Content(schema = @Schema(implementation = UserResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public UsersResponseDto searchManagers(
+            @Parameter(
+                    description = "UUID фирмы, к которой относится менеджер",
+                    example = "11111111-1111-1111-1111-111111111111"
+            )
+            @RequestParam UUID companyId,
+
+            @Parameter(description = "Имя менеджера", example = "Иван")
+            @RequestParam(required = false) String firstname,
+
+            @Parameter(description = "Фамилия менеджера", example = "Иванов")
+            @RequestParam(required = false) String lastname,
+
+            @Parameter(description = "Отчество менеджера", example = "Иванович")
+            @RequestParam(required = false) String patronymic,
+
+            @Parameter(description = "Активна/неактивна запись менеджера", example = "True")
+            @RequestParam(required = false, defaultValue = "True") Boolean isActive
+    ) {
+        return userService.searchManagers(
+                companyId,
+                firstname,
+                lastname,
+                patronymic,
+                isActive
+        );
+    }
+
+    @GetMapping("/drivers/search")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @CheckUserActive
+    @Operation(
+            summary = "Поиск водителей",
+            description = """
+                    Позволяет искать менеджеров по принадлежности к конкретной организации, имени, фамилии, отчеству.
+                    Имеется фильтр на активных/неактивных пользователей. Метод предназначен для админов.
+                    """,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Результаты поиска успешно получены",
+                            content = @Content(schema = @Schema(implementation = UserResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public UsersResponseDto searchDrivers(
+            @Parameter(
+                    description = "UUID фирмы, к которой относится водитель",
+                    example = "11111111-1111-1111-1111-111111111111"
+            )
+            @RequestParam UUID companyId,
+
+            @Parameter(description = "Имя водителя", example = "Иван")
+            @RequestParam(required = false) String firstname,
+
+            @Parameter(description = "Фамилия водителя", example = "Иванов")
+            @RequestParam(required = false) String lastname,
+
+            @Parameter(description = "Отчество водителя", example = "Иванович")
+            @RequestParam(required = false) String patronymic,
+
+            @Parameter(description = "Активна/неактивна запись водителя", example = "True")
+            @RequestParam(required = false, defaultValue = "True") Boolean isActive
+    ) {
+
+        return userService.searchDrivers(
+                companyId,
+                firstname,
+                lastname,
+                patronymic,
+                isActive
+        );
     }
 
 }

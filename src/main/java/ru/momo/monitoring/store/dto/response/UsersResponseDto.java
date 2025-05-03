@@ -2,7 +2,7 @@ package ru.momo.monitoring.store.dto.response;
 
 import java.util.List;
 
-public record ActiveDriversResponseDto(
+public record UsersResponseDto(
         List<UserResponseDto> activeDrivers
 ) {
 }
