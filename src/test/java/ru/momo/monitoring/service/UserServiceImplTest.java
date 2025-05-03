@@ -242,7 +242,7 @@ class UserServiceImplTest {
                 "Иван", "Иванов", "Иванович", manager.getEmail()
         );
 
-        assertEquals(2, result.activeDrivers().size());
+        assertEquals(2, result.users().size());
         verify(userRepository).findAll(any(Specification.class), any(Sort.class));
     }
 
