@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -120,6 +121,39 @@ public class UserController {
             Principal principal,
             @RequestBody @Validated UserUpdateRequestDto request) {
         return userService.update(request, principal.getName());
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @ResponseStatus(HttpStatus.OK)
+    @CheckUserActive
+    @Operation(
+            summary = "Обновление данных пользователя по ID (для Администраторов/Менеджеров)",
+            description = """
+                    Позволяет Администратору или Менеджеру обновить личные данные указанного пользователя.
+                    Менеджер может обновлять только пользователей внутри своей компании.
+                    Обновляются только те поля, которые переданы в теле запроса (не null).
+                    """,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Данные пользователя успешно обновлены",
+                            content = @Content(schema = @Schema(implementation = UserResponseDto.class))),
+                    @ApiResponse(responseCode = "400", description = "Некорректные данные в запросе (ошибка валидации, дубликат телефона)",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь (выполняющий запрос) не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав (не админ/менеджер, менеджер пытается обновить пользователя чужой компании, выполняющий пользователь не активен)",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Пользователь с указанным ID не найден",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public UserResponseDto updateUserById(
+            Principal principal,
+            @Parameter(description = "UUID пользователя, которого нужно обновить", required = true)
+            @PathVariable UUID id,
+            @RequestBody @Validated UserUpdateRequestDto request
+    ) {
+        return userService.updateById(id, request, principal.getName());
     }
 
     @DeleteMapping("/{id}")

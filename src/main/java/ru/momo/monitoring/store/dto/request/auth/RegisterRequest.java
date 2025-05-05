@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
@@ -27,7 +29,19 @@ public record RegisterRequest(
 
         @NotNull(message = "UUID не должен быть null")
         @Schema(description = "UUID компании", example = "11111111-1111-1111-1111-111111111111")
-        UUID companyId
+        UUID companyId,
+
+        @Size(max = 255, message = "Имя не должно превышать 255 символов")
+        @Schema(description = "Имя пользователя", example = "Иван")
+        String firstname,
+
+        @Size(max = 255, message = "Фамилия не должна превышать 255 символов")
+        @Schema(description = "Фамилия пользователя", example = "Иванов")
+        String lastname,
+
+        @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Некорректный номер телефона")
+        @Schema(description = "Номер телефона", example = "+79001234567")
+        String phoneNumber
 
 ) {
 }
