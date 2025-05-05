@@ -18,6 +18,8 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
     List<User> findUserByCompany_Id(UUID companyId);
 
+    boolean existsByUserData_PhoneNumberAndIdNot(String phoneNumber, UUID userId);
+
     default User findByIdOrThrow(UUID id) {
         return findById(id)
                 .orElseThrow(

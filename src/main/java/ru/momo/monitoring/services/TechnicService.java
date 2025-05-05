@@ -7,7 +7,6 @@ import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
-import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Technic;
 
 import java.util.List;
@@ -19,7 +18,7 @@ public interface TechnicService {
 
     TechnicCreatedResponseDto create(TechnicCreateRequestDto request);
 
-    TechnicUpdateResponseDto update(TechnicUpdateRequestDto request);
+    TechnicResponseDto update(UUID id, TechnicUpdateRequestDto request);
 
     void delete(UUID id);
 

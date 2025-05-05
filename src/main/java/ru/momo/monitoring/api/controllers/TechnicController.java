@@ -32,7 +32,6 @@ import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
-import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Technic;
 
 import java.security.Principal;
@@ -199,20 +198,70 @@ public class TechnicController {
         return technicService.getTechnicsForDriver(principal.getName());
     }
 
-    @PutMapping("/")
-    public ResponseEntity<?> updateTechnic(@RequestBody @Validated TechnicUpdateRequestDto request) {
-        TechnicUpdateResponseDto response = technicService.update(request);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(response);
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Обновление данных техники",
+            description = """
+                    Позволяет частично обновить информацию о существующей единице техники по ее ID.
+                    Обновляются только те поля, которые переданы в теле запроса (не null).
+                    Доступно для администраторов и менеджеров.
+                    Поля `serialNumber`, `vin`, `ownerId`, `companyId` этим методом не изменяются.
+                    Для смены водителя используйте PUT /api/v1/technic/driver.
+                    """,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Техника успешно обновлена",
+                            content = @Content(schema = @Schema(implementation = TechnicResponseDto.class))),
+                    @ApiResponse(responseCode = "400", description = "Неверные данные в запросе (ошибка валидации)",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Техника с указанным ID не найдена",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public TechnicResponseDto updateTechnic(
+            @Parameter(description = "ID техники для обновления", required = true, example = "a1b2c3d4-e5f6-7890-1234-567890abcdef")
+            @PathVariable UUID id,
+            @RequestBody @Validated TechnicUpdateRequestDto request
+    ) {
+        return technicService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteTechnic(@PathVariable UUID id) {
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @CheckUserActive
+    @Operation(
+            summary = "Удаление техники по ID",
+            description = """
+                    Полностью удаляет единицу техники из системы по ее уникальному идентификатору.
+                    **Внимание:** Это необратимая операция.
+                    Доступно только для пользователей с ролью администратора или менеджер.
+                    """,
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "Техника успешно удалена (нет содержимого в ответе)"),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав для выполнения операции (пользователь не админ или не активен)",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Техника с указанным ID не найдена",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public ResponseEntity<Void> deleteTechnic(
+            @Parameter(
+                    description = "Уникальный идентификатор (UUID) техники, которую необходимо удалить",
+                    required = true,
+                    example = "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+            )
+            @PathVariable UUID id
+    ) {
         technicService.delete(id);
-        return ResponseEntity
-                .status(HttpStatus.NO_CONTENT)
-                .build();
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/data/{id}")

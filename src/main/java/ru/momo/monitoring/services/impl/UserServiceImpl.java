@@ -6,6 +6,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.momo.monitoring.exceptions.AccessDeniedException;
 import ru.momo.monitoring.exceptions.UserBadRequestException;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
@@ -66,11 +67,7 @@ public class UserServiceImpl implements UserService {
 
         UserData userData = user.getUserData();
 
-        updateField(request.getFirstname(), userData::setFirstname);
-        updateField(request.getLastname(), userData::setLastname);
-        updateField(request.getPatronymic(), userData::setPatronymic);
-        updateField(request.getDateOfBirth(), userData::setDateOfBirth);
-        updateField(request.getAddress(), userData::setAddress);
+        updateUserInfo(request, userData);
 
         if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
             if (userRepository.existsByUserData_PhoneNumber(request.getPhoneNumber())) {
@@ -202,16 +199,62 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public UserResponseDto updateById(UUID userId, UserUpdateRequestDto request, String actorEmail) {
+        User userToUpdate = userRepository.findByIdOrThrow(userId);
+
+        User actor = userRepository.findByEmailOrThrow(actorEmail);
+
+        if (actor.getRole() == RoleName.ROLE_MANAGER) {
+            if (userToUpdate.getCompany() == null || actor.getCompany() == null ||
+                    !userToUpdate.getCompany().getId().equals(actor.getCompany().getId())) {
+                throw new AccessDeniedException("Manager can only update users within their own company.");
+            }
+        } else if (actor.getRole() != RoleName.ROLE_ADMIN) {
+            throw new AccessDeniedException("Only Admins or Managers can update users by ID.");
+        }
+
+        UserData userData = userToUpdate.getUserData();
+        if (userData == null) {
+            userData = new UserData();
+            userData.setUser(userToUpdate);
+            userToUpdate.setUserData(userData);
+        }
+
+        updateUserInfo(request, userData);
+
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            String newPhoneNumber = request.getPhoneNumber().trim();
+            if (userRepository.existsByUserData_PhoneNumberAndIdNot(newPhoneNumber, userToUpdate.getId())) {
+                throw new UserBadRequestException("Этот номер телефона уже используется другим пользователем.");
+            }
+            userData.setPhoneNumber(newPhoneNumber);
+        } else if (request.getPhoneNumber() != null && request.getPhoneNumber().isBlank()) {
+            userData.setPhoneNumber(null);
+        }
+
+        User updatedUser = userRepository.save(userToUpdate);
+
+        return UserResponseDto.mapFromEntity(updatedUser);
+    }
+
+    @Override
+    @Transactional
     public User saveNotConfirmedUser(RegisterRequest request, RoleName role, Company company) {
         if (!request.password().equals(request.passwordConfirmation())) {
             throw new UserBadRequestException("Пароли должны совпадать");
         }
 
         User user = new User();
+        UserData userData = new UserData();
         user.setRole(role);
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setEmail(request.email());
         user.setCompany(company);
+        userData.setFirstname(request.firstname());
+        userData.setLastname(request.lastname());
+        userData.setPhoneNumber(request.phoneNumber());
+        user.setUserData(userData);
+        userData.setUser(user);
         company.addUser(user);
 
         if (role.equals(RoleName.ROLE_DRIVER)) {
@@ -225,6 +268,14 @@ public class UserServiceImpl implements UserService {
         Optional.ofNullable(value)
                 .filter(v -> !(v instanceof String) || !((String) v).isBlank())
                 .ifPresent(setter);
+    }
+
+    private void updateUserInfo(UserUpdateRequestDto request, UserData userData) {
+        updateField(request.getFirstname(), userData::setFirstname);
+        updateField(request.getLastname(), userData::setLastname);
+        updateField(request.getPatronymic(), userData::setPatronymic);
+        updateField(request.getDateOfBirth(), userData::setDateOfBirth);
+        updateField(request.getAddress(), userData::setAddress);
     }
 
     private List<User> getUsersBySpecification(Specification<User> spec) {

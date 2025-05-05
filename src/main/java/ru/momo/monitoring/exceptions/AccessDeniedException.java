@@ -6,4 +6,8 @@ public class AccessDeniedException extends RuntimeException {
         super();
     }
 
+    public AccessDeniedException(String message) {
+        super(message);
+    }
+
 }

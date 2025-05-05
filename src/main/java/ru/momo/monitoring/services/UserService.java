@@ -63,4 +63,7 @@ public interface UserService {
             String patronymic,
             Boolean isActive
     );
+
+    UserResponseDto updateById(UUID id, UserUpdateRequestDto request, String name);
+
 }

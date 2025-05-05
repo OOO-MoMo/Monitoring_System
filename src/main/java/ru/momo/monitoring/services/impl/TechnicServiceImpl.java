@@ -5,8 +5,10 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.momo.monitoring.exceptions.AccessDeniedException;
 import ru.momo.monitoring.exceptions.SensorBadRequestException;
 import ru.momo.monitoring.services.CompanyService;
+import ru.momo.monitoring.services.SecurityService;
 import ru.momo.monitoring.services.SensorFactory;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.services.UserService;
@@ -17,10 +19,10 @@ import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
-import ru.momo.monitoring.store.dto.response.TechnicUpdateResponseDto;
 import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
+import ru.momo.monitoring.store.entities.enums.RoleName;
 import ru.momo.monitoring.store.repositories.SensorRepository;
 import ru.momo.monitoring.store.repositories.TechnicRepository;
 import ru.momo.monitoring.store.repositories.specification.TechnicSpecification;
@@ -29,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +48,8 @@ public class TechnicServiceImpl implements TechnicService {
 
     private final CompanyService companyService;
 
+    private final SecurityService securityService;
+
     @Override
     @Transactional(readOnly = true)
     public TechnicResponseDto getTechById(UUID id) {
@@ -55,15 +60,15 @@ public class TechnicServiceImpl implements TechnicService {
     @Transactional
     public TechnicCreatedResponseDto create(TechnicCreateRequestDto request) {
         Technic technic = TechnicCreateRequestDto.mapToTechnicEntity(request);
-        Company company = companyService.findById(technic.getCompany().getId());
+        Company company = companyService.findById(request.getCompanyId());
 
         validateNewTechnic(request);
 
         technic.setCompany(company);
         company.addTechnic(technic);
 
-        companyService.save(company);
         technicRepository.save(technic);
+        companyService.save(company);
 
         return TechnicCreatedResponseDto.MapFromEntity(technic);
     }
@@ -141,25 +146,39 @@ public class TechnicServiceImpl implements TechnicService {
 
     @Override
     @Transactional
-    public TechnicUpdateResponseDto update(TechnicUpdateRequestDto request) {
-        Technic updatedTechnic = technicRepository.findByIdOrThrow(request.getTechnicId());
+    public TechnicResponseDto update(UUID id, TechnicUpdateRequestDto request) {
+        Technic technicToUpdate = technicRepository.findByIdOrThrow(id);
 
-        if (request.getNewBrand() != null) {
-            updatedTechnic.setBrand(request.getNewBrand());
+        User currentUser = securityService.getCurrentUser();
+        if (currentUser.getRole().equals(RoleName.ROLE_MANAGER) &&
+                !technicToUpdate.getCompany().getId().equals(currentUser.getCompany().getId())) {
+            throw new AccessDeniedException("Manager can only update technics within their own company.");
         }
-        if (request.getNewModel() != null) {
-            updatedTechnic.setModel(request.getNewModel());
-        }
 
-        technicRepository.save(updatedTechnic);
+        updateFieldIfNotNull(request.brand(), technicToUpdate::setBrand);
+        updateFieldIfNotNull(request.model(), technicToUpdate::setModel);
+        updateFieldIfNotNull(request.year(), technicToUpdate::setYear);
+        updateFieldIfNotNull(request.isActive(), technicToUpdate::setIsActive);
+        updateFieldIfNotNull(request.description(), technicToUpdate::setDescription);
+        updateFieldIfNotNull(request.lastServiceDate(), technicToUpdate::setLastServiceDate);
+        updateFieldIfNotNull(request.nextServiceDate(), technicToUpdate::setNextServiceDate);
 
-        return TechnicUpdateResponseDto.mapFromEntity(updatedTechnic);
+        Technic updatedTechnic = technicRepository.save(technicToUpdate);
+
+        return TechnicResponseDto.mapFromEntity(updatedTechnic);
     }
 
     @Override
     @Transactional
     public void delete(UUID id) {
         Technic deletedTechnic = technicRepository.findByIdOrThrow(id);
+
+        User currentUser = securityService.getCurrentUser();
+        if (currentUser.getRole().equals(RoleName.ROLE_MANAGER) &&
+                !deletedTechnic.getCompany().getId().equals(currentUser.getCompany().getId())) {
+            throw new AccessDeniedException("Manager can only delete technics within their own company.");
+        }
+
         technicRepository.delete(deletedTechnic);
     }
 
@@ -191,6 +210,11 @@ public class TechnicServiceImpl implements TechnicService {
                 .collect(Collectors.toList());
     }
 
+    private <T> void updateFieldIfNotNull(T value, Consumer<T> setter) {
+        if (value != null) {
+            setter.accept(value);
+        }
+    }
 
     private void validateNewTechnic(TechnicCreateRequestDto request) {
         technicRepository.throwIfExistWithSameSerialNumber(request.getSerialNumber());
