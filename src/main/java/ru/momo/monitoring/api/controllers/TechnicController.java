@@ -174,6 +174,28 @@ public class TechnicController {
         return technicService.getAllTechnicsByCompanyId(companyId);
     }
 
+    @GetMapping("/company")
+    @PreAuthorize("hasRole('ROLE_MANAGER')")
+    @ResponseStatus(HttpStatus.OK)
+    @CheckUserActive
+    @Operation(
+            summary = "Получение всей техники для авторизованного менеджера",
+            description = "Возвращает список всей техники, принадлежащей компании, к которой относится менеджер. Доступно только для менеджеров.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Список техники успешно получен",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = TechnicResponseDto.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Компания с указанным ID не найдена",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public List<TechnicResponseDto> getAllTechnicsForManager() {
+        return technicService.getAllTechnicsForManager();
+    }
+
     @GetMapping("/my")
     @PreAuthorize("hasRole('ROLE_DRIVER')")
     @CheckUserActive

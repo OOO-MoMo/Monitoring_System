@@ -41,4 +41,5 @@ public interface TechnicService {
 
     List<TechnicResponseDto> getTechnicsForDriver(String driverEmail);
 
+    List<TechnicResponseDto> getAllTechnicsForManager();
 }
