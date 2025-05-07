@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +27,7 @@ import ru.momo.monitoring.store.dto.response.SensorDto;
 import ru.momo.monitoring.store.dto.response.SensorsDto;
 
 import java.security.Principal;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/sensors")
@@ -36,12 +38,12 @@ public class SensorController {
     private final SensorService sensorService;
 
     @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @CheckUserActive
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
             summary = "Регистрация нового сенсора",
-            description = "Создание нового сенсора в системе. Доступно только менеджерам с активным статусом"
+            description = "Создание нового сенсора в системе. Доступно только администраторам с активным статусом"
     )
     @ApiResponses({
             @ApiResponse(
@@ -82,11 +84,11 @@ public class SensorController {
     }
 
     @PostMapping("/assign")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @CheckUserActive
     @Operation(
             summary = "Привязать сенсор к технике",
-            description = "Установка связи между сенсором и техникой. Доступно только менеджерам компании"
+            description = "Установка связи между сенсором и техникой. Доступно только администраторам компании"
     )
     @ApiResponses({
             @ApiResponse(
@@ -131,11 +133,11 @@ public class SensorController {
     }
 
     @PostMapping("/unassign")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @CheckUserActive
     @Operation(
             summary = "Отвязать сенсор от техники",
-            description = "Удаление связи между сенсором и техникой. Доступно только менеджерам компании"
+            description = "Удаление связи между сенсором и техникой. Доступно только администраторам компании"
     )
     @ApiResponses({
             @ApiResponse(
@@ -212,5 +214,41 @@ public class SensorController {
             @Parameter(hidden = true) Principal principal
     ) {
         return sensorService.getAllCompanySensors(principal.getName());
+    }
+
+    @GetMapping("/company/{companyId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @CheckUserActive
+    @Operation(
+            summary = "Получить все сенсоры указанной компании (для администратора)",
+            description = "Возвращает список всех сенсоров, принадлежащих указанной компании. Доступно только администраторам."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Успешное получение списка сенсоров",
+                    content = @Content(schema = @Schema(implementation = SensorsDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Пользователь не авторизован",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Доступ запрещен",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Компания с указанным ID не найдена (если такая проверка реализована в сервисе)",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            )
+    })
+    public SensorsDto getAllSensorsByCompanyIdForAdmin(
+            @Parameter(description = "ID компании", required = true, example = "a1b2c3d4-e5f6-7890-1234-567890abcdef")
+            @PathVariable UUID companyId
+    ) {
+        return sensorService.getAllSensorsByCompanyIdForAdmin(companyId);
     }
 }

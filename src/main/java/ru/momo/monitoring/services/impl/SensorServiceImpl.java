@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.exceptions.EntityDuplicationException;
+import ru.momo.monitoring.exceptions.ResourceNotFoundException;
 import ru.momo.monitoring.exceptions.SensorBadRequestException;
+import ru.momo.monitoring.services.CompanyService;
 import ru.momo.monitoring.services.SensorService;
 import ru.momo.monitoring.services.SensorTypeService;
 import ru.momo.monitoring.services.TechnicService;
@@ -21,6 +23,7 @@ import ru.momo.monitoring.store.mapper.SensorMapper;
 import ru.momo.monitoring.store.repositories.SensorRepository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +38,8 @@ public class SensorServiceImpl implements SensorService {
     private final SensorMapper sensorMapper;
 
     private final TechnicService technicService;
+
+    private final CompanyService companyService;
 
     @Override
     @Transactional
@@ -115,6 +120,20 @@ public class SensorServiceImpl implements SensorService {
         User manager = userService.getByEmail(email);
 
         List<Sensor> sensors = sensorRepository.findAllByCompanyId(manager.getCompany().getId());
+
+        return new SensorsDto(
+                sensors.stream().map(SensorDto::toDto).toList()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SensorsDto getAllSensorsByCompanyIdForAdmin(UUID companyId) {
+        if (!companyService.isExistsById(companyId)) {
+            throw new ResourceNotFoundException("Company with id " + companyId + " not found");
+        }
+
+        List<Sensor> sensors = sensorRepository.findAllByCompanyId(companyId);
 
         return new SensorsDto(
                 sensors.stream().map(SensorDto::toDto).toList()

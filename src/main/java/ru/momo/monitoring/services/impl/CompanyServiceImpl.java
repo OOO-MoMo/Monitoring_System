@@ -115,6 +115,11 @@ public class CompanyServiceImpl implements CompanyService {
         companyRepository.save(company);
     }
 
+    @Override
+    public Boolean isExistsById(UUID id) {
+        return companyRepository.existsById(id);
+    }
+
     private void validate(CompanyCreateRequestDto request) {
         companyRepository.throwIfExistWithSameInn(request.inn());
         companyRepository.throwIfExistWithSameName(request.name());

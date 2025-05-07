@@ -36,7 +36,7 @@ public class SensorTypeController {
     private final SensorTypeService sensorTypeService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @CheckUserActive
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
@@ -80,12 +80,12 @@ public class SensorTypeController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
     @CheckUserActive
     @ResponseStatus(HttpStatus.OK)
     @Operation(
             summary = "Получение типа сенсора по ID",
-            description = "Возвращает полные данные о типе. Доступно только администраторам с активным статусом."
+            description = "Возвращает полные данные о типе. Доступно только администраторам/менеджерам с активным статусом."
     )
     @ApiResponses({
             @ApiResponse(
@@ -121,7 +121,7 @@ public class SensorTypeController {
     @ResponseStatus(HttpStatus.OK)
     @Operation(
             summary = "Получение всех типов сенсоров",
-            description = "Возвращает список всех зарегистрированных типов. Доступно только администраторам с активным статусом"
+            description = "Возвращает список всех зарегистрированных типов. Доступно только администраторам/менеджерам с активным статусом"
     )
     @ApiResponses({
             @ApiResponse(

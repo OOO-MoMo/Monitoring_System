@@ -25,4 +25,6 @@ public interface CompanyService {
 
     void save(Company company);
 
+    Boolean isExistsById(UUID id);
+
 }

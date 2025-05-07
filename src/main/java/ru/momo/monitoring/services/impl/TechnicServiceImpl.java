@@ -210,6 +210,18 @@ public class TechnicServiceImpl implements TechnicService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TechnicResponseDto> getAllTechnicsForManager() {
+        User currentUser = securityService.getCurrentUser();
+
+        UUID companyId = currentUser.getCompany().getId();
+
+        List<Technic> technics = technicRepository.findByCompanyId(companyId);
+
+        return technics.stream().map(TechnicResponseDto::mapFromEntity).toList();
+    }
+
     private <T> void updateFieldIfNotNull(T value, Consumer<T> setter) {
         if (value != null) {
             setter.accept(value);
