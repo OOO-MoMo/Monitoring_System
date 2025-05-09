@@ -145,6 +145,11 @@ public class TechnicServiceImpl implements TechnicService {
     }
 
     @Override
+    public Technic getEntityById(UUID id) {
+        return technicRepository.findByIdOrThrow(id);
+    }
+
+    @Override
     @Transactional
     public TechnicResponseDto update(UUID id, TechnicUpdateRequestDto request) {
         Technic technicToUpdate = technicRepository.findByIdOrThrow(id);

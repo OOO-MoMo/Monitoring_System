@@ -3,27 +3,33 @@ package ru.momo.monitoring.services.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.momo.monitoring.exceptions.AccessDeniedException;
 import ru.momo.monitoring.exceptions.EntityDuplicationException;
 import ru.momo.monitoring.exceptions.ResourceNotFoundException;
 import ru.momo.monitoring.exceptions.SensorBadRequestException;
 import ru.momo.monitoring.services.CompanyService;
+import ru.momo.monitoring.services.SecurityService;
 import ru.momo.monitoring.services.SensorService;
 import ru.momo.monitoring.services.SensorTypeService;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.CreateSensorRequest;
 import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
+import ru.momo.monitoring.store.dto.request.UpdateSensorRequest;
 import ru.momo.monitoring.store.dto.response.SensorDto;
 import ru.momo.monitoring.store.dto.response.SensorsDto;
 import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.SensorType;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
+import ru.momo.monitoring.store.entities.enums.RoleName;
 import ru.momo.monitoring.store.mapper.SensorMapper;
 import ru.momo.monitoring.store.repositories.SensorRepository;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +46,8 @@ public class SensorServiceImpl implements SensorService {
     private final TechnicService technicService;
 
     private final CompanyService companyService;
+
+    private final SecurityService securityService;
 
     @Override
     @Transactional
@@ -138,6 +146,108 @@ public class SensorServiceImpl implements SensorService {
         return new SensorsDto(
                 sensors.stream().map(SensorDto::toDto).toList()
         );
+    }
+
+    @Override
+    public SensorsDto getSensorsForDriver() {
+        User user = securityService.getCurrentUser();
+
+        List<Technic> userTechnics = user.getTechnics();
+
+        if (userTechnics == null || userTechnics.isEmpty()) {
+            return new SensorsDto(Collections.emptyList());
+        }
+
+        List<SensorDto> allSensorDtos = userTechnics.stream()
+                .flatMap(technic -> technic.getSensors().stream())
+                .map(SensorDto::toDto)
+                .collect(Collectors.toList());
+
+        return new SensorsDto(allSensorDtos);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SensorsDto getSensorsByTechnicId(UUID technicId) {
+        User user = securityService.getCurrentUser();
+        Technic technic = technicService.getEntityById(technicId);
+        boolean authorized = isAuthorized(user, technic);
+
+        if (!authorized) {
+            throw new AccessDeniedException("User does not have permission to access sensors for this technic.");
+        }
+
+        List<SensorDto> sensorDtos = technic.getSensors().stream()
+                .map(SensorDto::toDto)
+                .collect(Collectors.toList());
+        return new SensorsDto(sensorDtos);
+    }
+
+    @Override
+    @Transactional
+    public SensorDto updateSensor(UUID sensorId, UpdateSensorRequest request) {
+        Sensor sensor = sensorRepository.findByIdOrThrow(sensorId);
+
+        if (request.serialNumber() != null && !request.serialNumber().equals(sensor.getSerialNumber())) {
+            sensorRepository.throwIfExistsWithSameSerialNumber(request.serialNumber());
+            sensor.setSerialNumber(request.serialNumber());
+        }
+        if (request.manufacturer() != null) {
+            sensor.setManufacturer(request.manufacturer());
+        }
+        if (request.minValue() != null) {
+            sensor.setMinValue(request.minValue());
+        }
+        if (request.maxValue() != null) {
+            sensor.setMaxValue(request.maxValue());
+        }
+        if (request.productionDate() != null) {
+            sensor.setProductionDate(request.productionDate());
+        }
+        if (request.calibrationDueDate() != null) {
+            sensor.setCalibrationDueDate(request.calibrationDueDate());
+        }
+        if (request.isActive() != null) {
+            sensor.setIsActive(request.isActive());
+        }
+
+        Sensor updatedSensor = sensorRepository.saveAndFlush(sensor);
+        return SensorDto.toDto(updatedSensor);
+    }
+
+
+    @Override
+    @Transactional
+    public void deleteSensor(UUID sensorId) {
+        Sensor sensor = sensorRepository.findByIdOrThrow(sensorId);
+
+        if (sensor.getTechnic() != null) {
+            throw new SensorBadRequestException(
+                    "Cannot delete sensor. It is currently assigned to technic with ID: " +
+                            sensor.getTechnic().getId() + ". Please unassign it first."
+            );
+        }
+
+        sensorRepository.delete(sensor);
+    }
+
+    private static boolean isAuthorized(User user, Technic technic) {
+        RoleName roleName = user.getRole();
+        boolean authorized = false;
+
+        if (roleName.equals(RoleName.ROLE_ADMIN)) {
+            authorized = true;
+        } else if (roleName.equals(RoleName.ROLE_MANAGER)) {
+            if (technic.getCompany() != null && user.getCompany() != null &&
+                    technic.getCompany().getId().equals(user.getCompany().getId())) {
+                authorized = true;
+            }
+        } else if (roleName.equals(RoleName.ROLE_DRIVER)) {
+            if (technic.getOwnerId() != null && technic.getOwnerId().getId().equals(user.getId())) {
+                authorized = true;
+            }
+        }
+        return authorized;
     }
 
 /*    private final SensorRepository sensorRepository;
