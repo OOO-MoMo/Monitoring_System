@@ -6,7 +6,12 @@
 	<groupId>ru.momo</groupId>
 	<artifactId>monitoring</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
 	<description>Practice project for Globus</description>
+	<modules>
+		<module>Data_Generator</module>
+		<module>Monitoring_System</module>
+	</modules>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
