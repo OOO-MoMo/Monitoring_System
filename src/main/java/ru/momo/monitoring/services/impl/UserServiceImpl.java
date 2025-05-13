@@ -239,6 +239,27 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public void deactivateDriverByManager(UUID driverId, String managerEmail) {
+        User manager = getByEmail(managerEmail);
+
+        User driverToDeactivate = userRepository.findByIdOrThrow(driverId);
+
+        if (driverToDeactivate.getRole() != RoleName.ROLE_DRIVER) {
+            throw new UserBadRequestException("User with id " + driverId + " is not a driver.");
+        }
+
+        if (manager.getCompany() == null || driverToDeactivate.getCompany() == null ||
+                !manager.getCompany().getId().equals(driverToDeactivate.getCompany().getId())) {
+            throw new AccessDeniedException("Manager can only deactivate drivers within their own company.");
+        }
+
+        // todo: Также нужно инвалидировать токены водителя (как и в методе delete)
+        driverToDeactivate.setIsActive(false);
+        userRepository.save(driverToDeactivate);
+    }
+
+    @Override
+    @Transactional
     public User saveNotConfirmedUser(RegisterRequest request, RoleName role, Company company) {
         if (!request.password().equals(request.passwordConfirmation())) {
             throw new UserBadRequestException("Пароли должны совпадать");

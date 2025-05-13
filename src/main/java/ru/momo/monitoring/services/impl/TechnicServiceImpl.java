@@ -19,6 +19,7 @@ import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicUnassignDriverResponseDto;
 import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
@@ -60,6 +61,7 @@ public class TechnicServiceImpl implements TechnicService {
     @Transactional
     public TechnicCreatedResponseDto create(TechnicCreateRequestDto request) {
         Technic technic = TechnicCreateRequestDto.mapToTechnicEntity(request);
+        technic.setIsActive(true);
         Company company = companyService.findById(request.getCompanyId());
 
         validateNewTechnic(request);
@@ -225,6 +227,41 @@ public class TechnicServiceImpl implements TechnicService {
         List<Technic> technics = technicRepository.findByCompanyId(companyId);
 
         return technics.stream().map(TechnicResponseDto::mapFromEntity).toList();
+    }
+
+    @Override
+    @Transactional
+    public TechnicUnassignDriverResponseDto unassignDriverFromTechnic(UUID technicId, UUID driverId) {
+        User manager = securityService.getCurrentUser();
+
+        Technic technic = technicRepository.findByIdOrThrow(technicId);
+        User driver = userService.getByIdEntity(driverId);
+
+        if (manager.getCompany() == null || technic.getCompany() == null ||
+                !manager.getCompany().getId().equals(technic.getCompany().getId())) {
+            throw new AccessDeniedException("Manager can only manage technics within their own company.");
+        }
+
+        if (technic.getOwnerId() == null || !technic.getOwnerId().getId().equals(driverId)) {
+            throw new SensorBadRequestException(
+                    "Driver with ID " + driverId + " is not assigned to technic with ID " + technicId
+            );
+        }
+
+        technic.setOwnerId(null);
+
+        if (driver.getTechnics() != null) {
+            driver.getTechnics().removeIf(t -> t.getId().equals(technicId));
+        }
+        userService.save(driver);
+
+        technicRepository.save(technic);
+
+        return new TechnicUnassignDriverResponseDto(
+                technicId,
+                driverId,
+                "Driver successfully unassigned from technic."
+        );
     }
 
     private <T> void updateFieldIfNotNull(T value, Consumer<T> setter) {

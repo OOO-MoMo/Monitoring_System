@@ -324,4 +324,34 @@ public class UserController {
         );
     }
 
+    @DeleteMapping("/drivers/{driverId}/deactivate-by-manager")
+    @PreAuthorize("hasRole('ROLE_MANAGER')")
+    @ResponseStatus(HttpStatus.OK)
+    @CheckUserActive
+    @Operation(
+            summary = "Деактивация водителя менеджером",
+            description = """
+                    Позволяет менеджеру деактивировать (логически удалить) водителя.
+                    Менеджер может деактивировать только водителей из своей компании.
+                    Деактивированный водитель не сможет войти в систему.
+                    """,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Водитель успешно деактивирован"),
+                    @ApiResponse(responseCode = "401", description = "Пользователь (менеджер) не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав (не менеджер, или менеджер пытается деактивировать водителя не из своей компании, или менеджер не активен)",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Водитель с указанным ID не найден, или менеджер не найден",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "400", description = "Пользователь с указанным ID не является водителем",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public void deactivateDriverByManager(
+            Principal principal,
+            @Parameter(description = "UUID водителя для деактивации", required = true)
+            @PathVariable UUID driverId) {
+        userService.deactivateDriverByManager(driverId, principal.getName());
+    }
+
 }

@@ -11,9 +11,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -23,6 +25,7 @@ import ru.momo.monitoring.exceptions.ExceptionBody;
 import ru.momo.monitoring.services.SensorTypeService;
 import ru.momo.monitoring.store.dto.request.CreateSensorTypeRequest;
 import ru.momo.monitoring.store.dto.request.SensorTypeDto;
+import ru.momo.monitoring.store.dto.request.UpdateSensorTypeRequest;
 import ru.momo.monitoring.store.dto.response.SensorTypesDto;
 
 import java.util.UUID;
@@ -142,6 +145,89 @@ public class SensorTypeController {
     })
     public SensorTypesDto getAllSensorTypes() {
         return sensorTypeService.getAllSensorTypes();
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Обновление существующего типа сенсора",
+            description = "Обновляет данные типа сенсора по ID. Доступно только администраторам с активным статусом."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Тип успешно обновлен",
+                    content = @Content(schema = @Schema(implementation = SensorTypeDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Некорректные параметры запроса",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Пользователь не авторизован",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Доступ запрещен / Пользователь не активен",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Тип для обновления не найден",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Тип с таким новым именем уже существует",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            )
+    })
+    public SensorTypeDto updateSensorType(
+            @Parameter(description = "UUID типа сенсора для обновления", example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID id,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Новые данные для типа", required = true)
+            @Valid @RequestBody UpdateSensorTypeRequest request) {
+        return sensorTypeService.updateSensorType(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(
+            summary = "Удаление типа сенсора",
+            description = "Удаляет тип сенсора по ID. Доступно только администраторам с активным статусом."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "204",
+                    description = "Тип успешно удален"
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Пользователь не авторизован",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Доступ запрещен / Пользователь не активен",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Тип для удаления не найден",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            )
+    })
+    public void deleteSensorType(
+            @Parameter(description = "UUID типа сенсора для удаления", example = "550e8400-e29b-41d4-a716-446655440000")
+            @PathVariable UUID id) {
+        sensorTypeService.deleteSensorType(id);
     }
 
 }

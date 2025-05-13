@@ -10,7 +10,11 @@ import java.util.UUID;
 
 public interface SensorRepository extends JpaRepository<Sensor, UUID> {
 
+    boolean existsByType_Id(UUID typeId);
+
     boolean existsBySerialNumber(String serialNumber);
+
+    List<Sensor> findAllByType_Id(UUID typeId);
 
     List<Sensor> findAllByCompanyId(UUID companyId);
 
