@@ -66,4 +66,6 @@ public interface UserService {
 
     UserResponseDto updateById(UUID id, UserUpdateRequestDto request, String name);
 
+    void deactivateDriverByManager(UUID driverId, String managerEmail);
+
 }

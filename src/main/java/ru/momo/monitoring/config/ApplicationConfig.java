@@ -29,6 +29,7 @@ public class ApplicationConfig {
 
     private final String[] WHITE_LIST_URL = {
             "/api/v1/auth/**",
+            "/api/v1/users/**",
             "/swagger-ui/**",
             "/v3/api-docs/**"
     };

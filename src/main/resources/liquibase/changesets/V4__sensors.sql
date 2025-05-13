@@ -29,7 +29,7 @@ $$;
 CREATE TABLE IF NOT EXISTS sensor_data
 (
     id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sensor_id UUID         NOT NULL REFERENCES sensors (id),
+    sensor_id UUID REFERENCES sensors (id) ON DELETE SET NULL,
     value     VARCHAR(255) NOT NULL,
     timestamp TIMESTAMP    NOT NULL,
     status    sensor_status

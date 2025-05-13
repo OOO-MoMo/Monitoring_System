@@ -29,4 +29,8 @@ public interface SensorService {
 
     void deleteSensor(UUID sensorId);
 
+    boolean existsByTypeId(UUID typeId);
+
+    SensorsDto getSensorsBySensorTypeId(UUID sensorTypeId);
+
 }

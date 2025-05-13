@@ -37,7 +37,7 @@ public class SensorData {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sensor_id", nullable = false)
+    @JoinColumn(name = "sensor_id")
     private Sensor sensor;
 
     @Column(name = "value", nullable = false)

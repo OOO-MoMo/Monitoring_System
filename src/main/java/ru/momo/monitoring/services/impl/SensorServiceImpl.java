@@ -231,6 +231,18 @@ public class SensorServiceImpl implements SensorService {
         sensorRepository.delete(sensor);
     }
 
+    @Override
+    public boolean existsByTypeId(UUID typeId) {
+        return sensorRepository.existsByType_Id(typeId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SensorsDto getSensorsBySensorTypeId(UUID sensorTypeId) {
+        List<Sensor> sensors = sensorRepository.findAllByType_Id(sensorTypeId);
+        return new SensorsDto(sensors.stream().map(SensorDto::toDto).toList());
+    }
+
     private static boolean isAuthorized(User user, Technic technic) {
         RoleName roleName = user.getRole();
         boolean authorized = false;

@@ -32,6 +32,7 @@ import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicUnassignDriverResponseDto;
 import ru.momo.monitoring.store.entities.Technic;
 
 import java.security.Principal;
@@ -284,6 +285,38 @@ public class TechnicController {
     ) {
         technicService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{technicId}/unassign-driver/{driverId}")
+    @PreAuthorize("hasRole('ROLE_MANAGER')")
+    @CheckUserActive
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(
+            summary = "Отвязка водителя от техники",
+            description = """
+                    Позволяет менеджеру отвязать указанного водителя от указанной единицы техники.
+                    Менеджер может выполнять эту операцию только для техники своей компании.
+                    """,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Водитель успешно отвязан от техники",
+                            content = @Content(schema = @Schema(implementation = TechnicUnassignDriverResponseDto.class))),
+                    @ApiResponse(responseCode = "400", description = "Некорректные данные (например, водитель не был назначен на эту технику)",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "401", description = "Пользователь (менеджер) не авторизован",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "403", description = "Недостаточно прав (не менеджер, или попытка управлять техникой чужой компании, или менеджер не активен)",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+                    @ApiResponse(responseCode = "404", description = "Техника или водитель с указанным ID не найдены",
+                            content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+            }
+    )
+    public TechnicUnassignDriverResponseDto unassignDriver(
+            @Parameter(description = "ID техники, от которой нужно отвязать водителя", required = true)
+            @PathVariable UUID technicId,
+            @Parameter(description = "ID водителя, которого нужно отвязать", required = true)
+            @PathVariable UUID driverId
+    ) {
+        return technicService.unassignDriverFromTechnic(technicId, driverId);
     }
 
     @GetMapping("/data/{id}")

@@ -7,6 +7,7 @@ import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
+import ru.momo.monitoring.store.dto.response.TechnicUnassignDriverResponseDto;
 import ru.momo.monitoring.store.entities.Technic;
 
 import java.util.List;
@@ -44,4 +45,7 @@ public interface TechnicService {
     List<TechnicResponseDto> getTechnicsForDriver(String driverEmail);
 
     List<TechnicResponseDto> getAllTechnicsForManager();
+
+    TechnicUnassignDriverResponseDto unassignDriverFromTechnic(UUID technicId, UUID driverId);
+
 }

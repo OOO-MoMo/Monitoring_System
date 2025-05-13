@@ -426,4 +426,41 @@ public class SensorController {
         sensorService.deleteSensor(sensorId);
     }
 
+    @GetMapping("/sensorType/{sensorTypeId}/sensors")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @CheckUserActive
+    @Operation(
+            summary = "Получить сенсоры конкретного типа",
+            description = "Возвращает список сенсоров для указанного типа сенсоров. " +
+                    "Администратор: доступ есть."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Успешное получение списка сенсоров",
+                    content = @Content(schema = @Schema(implementation = SensorsDto.class))
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Пользователь не авторизован",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Доступ запрещен",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Типа сенсора с указанным ID не найден",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))
+            )
+    })
+    public SensorsDto getSensorsBySensorTypeId(
+            @Parameter(description = "ID типа сенсора", required = true, example = "a1b2c3d4-e5f6-7890-1234-567890abcdef")
+            @PathVariable UUID sensorTypeId
+    ) {
+        return sensorService.getSensorsBySensorTypeId(sensorTypeId);
+    }
+
 }
