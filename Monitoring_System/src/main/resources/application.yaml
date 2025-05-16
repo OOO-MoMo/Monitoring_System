@@ -1,0 +1,66 @@
+---
+server:
+  port: 8081
+
+application:
+  name: "Monitoring System"
+  version: 1.0
+
+spring:
+  main:
+    allow-circular-references: true
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:postgresql://${HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+  liquibase:
+    change-log: classpath:liquibase/db.changelog.yaml
+    enabled: true
+    default-schema: public
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 60000
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 5
+        min-idle: 2
+        max-wait: 2000
+  mail:
+    host: smtp.yandex.ru
+    port: 465
+    username: morgachevctepan
+    password: ${EMAIL_PASSWORD}
+    test-connection: true
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+    protocol: smtps
+
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+    access: 1
+    refresh: 30
+
+logging:
+  level:
+    org.springframework.mail: DEBUG
+    com.sun.mail: DEBUG
+
+sensor:
+  generator:
+    service:
+      base-url: http://localhost:8082/api/v1/generator
+      threshold: 0.1
