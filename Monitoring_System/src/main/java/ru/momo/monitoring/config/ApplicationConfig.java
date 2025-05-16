@@ -1,6 +1,7 @@
 package ru.momo.monitoring.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -16,8 +17,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.client.RestTemplate;
 import ru.momo.monitoring.security.JwtTokenFilter;
 import ru.momo.monitoring.security.JwtTokenProvider;
+
+import java.time.Duration;
 
 @Configuration
 @EnableWebSecurity
@@ -31,7 +35,8 @@ public class ApplicationConfig {
             "/api/v1/auth/**",
             "/api/v1/users/**",
             "/swagger-ui/**",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/api/v1/internal/sensor-data/receive"
     };
 
     @Bean
@@ -75,6 +80,14 @@ public class ApplicationConfig {
                         UsernamePasswordAuthenticationFilter.class);
 
         return httpSecurity.build();
+    }
+
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder
+                .setConnectTimeout(Duration.ofSeconds(5))
+                .setReadTimeout(Duration.ofSeconds(10))
+                .build();
     }
 
 }

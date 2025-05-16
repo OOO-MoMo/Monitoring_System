@@ -3,6 +3,7 @@ package ru.momo.monitoring.services.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.momo.monitoring.client.SensorGeneratorClient;
 import ru.momo.monitoring.exceptions.AccessDeniedException;
 import ru.momo.monitoring.exceptions.EntityDuplicationException;
 import ru.momo.monitoring.exceptions.ResourceNotFoundException;
@@ -13,6 +14,7 @@ import ru.momo.monitoring.services.SensorService;
 import ru.momo.monitoring.services.SensorTypeService;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.services.UserService;
+import ru.momo.monitoring.store.dto.data_generator.RegisterSensorToGeneratorRequest;
 import ru.momo.monitoring.store.dto.request.CreateSensorRequest;
 import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
 import ru.momo.monitoring.store.dto.request.UpdateSensorRequest;
@@ -49,6 +51,8 @@ public class SensorServiceImpl implements SensorService {
 
     private final SecurityService securityService;
 
+    private final SensorGeneratorClient sensorGeneratorClient;
+
     @Override
     @Transactional
     public SensorDto registerSensor(CreateSensorRequest request, String email) {
@@ -66,10 +70,44 @@ public class SensorServiceImpl implements SensorService {
         sensor.setMaxValue(request.maxValue());
         sensor.setProductionDate(request.productionDate());
         sensor.setCompany(user.getCompany());
+        sensor.setIsActive(true);
 
-        sensorRepository.saveAndFlush(sensor);
+        Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
 
-        return SensorDto.toDto(sensor);
+        if (savedSensor.getIsActive()) {
+            registerSensorWithGenerator(savedSensor);
+        }
+
+        return SensorDto.toDto(savedSensor);
+    }
+
+    private void registerSensorWithGenerator(Sensor sensor) {
+        if (sensor == null || !sensor.getIsActive()) {
+            return;
+        }
+        UUID technicId = (sensor.getTechnic() != null) ? sensor.getTechnic().getId() : null;
+
+        RegisterSensorToGeneratorRequest registrationRequest = RegisterSensorToGeneratorRequest.builder()
+                .sensorId(sensor.getId())
+                .technicId(technicId)
+                .sensorType(sensor.getType() != null ? sensor.getType().getName() : "UNKNOWN") // Убедись, что у SensorType есть getName()
+                .serialNumber(sensor.getSerialNumber())
+                .minValue(parseSafeDouble(sensor.getMinValue()))
+                .maxValue(parseSafeDouble(sensor.getMaxValue()))
+                .build();
+
+        sensorGeneratorClient.registerSensor(registrationRequest);
+    }
+
+    private Double parseSafeDouble(String value) {
+        if (value == null || value.isBlank()) return null;
+
+        try {
+            return Double.parseDouble(value.replace(',', '.'));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+
     }
 
     @Override
@@ -85,14 +123,19 @@ public class SensorServiceImpl implements SensorService {
 
         Technic technic = technicService.findByCompanyAndId(manager.getCompany().getId(), request.technicId());
 
-        if (technic.getSensors().contains(sensor)) {
+        if (technic.getSensors().stream().anyMatch(s -> s.getId().equals(sensor.getId()))) {
             throw new EntityDuplicationException("Sensor already assigned to this technic");
         }
 
         technic.getSensors().add(sensor);
         sensor.setTechnic(technic);
-        sensorRepository.saveAndFlush(sensor);
+        sensor.setIsActive(true);
+        Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
         technicService.save(technic);
+
+        if (savedSensor.getIsActive()) {
+            registerSensorWithGenerator(savedSensor);
+        }
     }
 
 
@@ -117,9 +160,16 @@ public class SensorServiceImpl implements SensorService {
 
         technic.getSensors().remove(sensor);
         sensor.setTechnic(null);
+        sensor.setIsActive(false);
 
         technicService.save(technic);
-        sensorRepository.saveAndFlush(sensor);
+        Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
+
+        if (savedSensor.getIsActive()) {
+            registerSensorWithGenerator(savedSensor);
+        } else {
+            sensorGeneratorClient.deregisterSensor(savedSensor.getId());
+        }
     }
 
     @Override
@@ -187,6 +237,7 @@ public class SensorServiceImpl implements SensorService {
     @Transactional
     public SensorDto updateSensor(UUID sensorId, UpdateSensorRequest request) {
         Sensor sensor = sensorRepository.findByIdOrThrow(sensorId);
+        boolean previousActiveState = sensor.getIsActive();
 
         if (request.serialNumber() != null && !request.serialNumber().equals(sensor.getSerialNumber())) {
             sensorRepository.throwIfExistsWithSameSerialNumber(request.serialNumber());
@@ -212,6 +263,17 @@ public class SensorServiceImpl implements SensorService {
         }
 
         Sensor updatedSensor = sensorRepository.saveAndFlush(sensor);
+
+        if (previousActiveState != updatedSensor.getIsActive()) {
+            if (updatedSensor.getIsActive()) {
+                registerSensorWithGenerator(updatedSensor);
+            } else {
+                sensorGeneratorClient.deregisterSensor(updatedSensor.getId());
+            }
+        } else if (updatedSensor.getIsActive()) {
+            registerSensorWithGenerator(updatedSensor);
+        }
+
         return SensorDto.toDto(updatedSensor);
     }
 
@@ -228,6 +290,8 @@ public class SensorServiceImpl implements SensorService {
             );
         }
 
+        sensorGeneratorClient.deregisterSensor(sensorId);
+
         sensorRepository.delete(sensor);
     }
 
@@ -241,6 +305,12 @@ public class SensorServiceImpl implements SensorService {
     public SensorsDto getSensorsBySensorTypeId(UUID sensorTypeId) {
         List<Sensor> sensors = sensorRepository.findAllByType_Id(sensorTypeId);
         return new SensorsDto(sensors.stream().map(SensorDto::toDto).toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Sensor getSensorEntityById(UUID sensorId) {
+        return sensorRepository.findByIdOrThrow(sensorId);
     }
 
     private static boolean isAuthorized(User user, Technic technic) {

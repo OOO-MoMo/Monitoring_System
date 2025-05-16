@@ -20,7 +20,7 @@ DO
 $$
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'sensor_status') THEN
-            CREATE TYPE sensor_status AS ENUM ('NORMAL', 'WARNING', 'CRITICAL');
+            CREATE TYPE sensor_status AS ENUM ('NORMAL', 'WARNING', 'CRITICAL', 'UNDEFINED');
         END IF;
     END
 $$;
@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS sensor_data
 (
     id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sensor_id UUID REFERENCES sensors (id) ON DELETE SET NULL,
+    technic_id UUID REFERENCES technics (id) ON DELETE SET NULL,
     value     VARCHAR(255) NOT NULL,
     timestamp TIMESTAMP    NOT NULL,
     status    sensor_status

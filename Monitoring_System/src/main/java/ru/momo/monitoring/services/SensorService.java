@@ -6,6 +6,7 @@ import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
 import ru.momo.monitoring.store.dto.request.UpdateSensorRequest;
 import ru.momo.monitoring.store.dto.response.SensorDto;
 import ru.momo.monitoring.store.dto.response.SensorsDto;
+import ru.momo.monitoring.store.entities.Sensor;
 
 import java.util.UUID;
 
@@ -32,5 +33,7 @@ public interface SensorService {
     boolean existsByTypeId(UUID typeId);
 
     SensorsDto getSensorsBySensorTypeId(UUID sensorTypeId);
+
+    Sensor getSensorEntityById(UUID sensorId);
 
 }

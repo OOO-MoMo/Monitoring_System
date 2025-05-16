@@ -16,6 +16,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import ru.momo.monitoring.store.entities.enums.SensorStatus;
 
 import java.time.LocalDateTime;
@@ -40,14 +42,19 @@ public class SensorData {
     @JoinColumn(name = "sensor_id")
     private Sensor sensor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "technic_id")
+    private Technic technic;
+
     @Column(name = "value", nullable = false)
     private String value;
 
     @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp;
 
-    @Column(name = "status")
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "sensor_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private SensorStatus status;
 
 }
