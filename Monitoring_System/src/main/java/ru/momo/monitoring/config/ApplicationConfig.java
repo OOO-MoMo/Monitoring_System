@@ -36,7 +36,8 @@ public class ApplicationConfig {
             "/api/v1/users/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
-            "/api/v1/internal/sensor-data/receive"
+            "/api/v1/internal/sensor-data/receive",
+            "/ws-monitoring/**"
     };
 
     @Bean
