@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мониторинг Сенсора</title>
+    <!-- Подключаем SockJS-клиент -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+    <!-- Подключаем STOMP поверх SockJS -->
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+
+        #container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #status {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .status-connected {
+            background-color: #e6ffed;
+            border: 1px solid #5cb85c;
+            color: #3c763d;
+        }
+
+        .status-disconnected {
+            background-color: #f2dede;
+            border: 1px solid #a94442;
+            color: #a94442;
+        }
+
+        .status-connecting {
+            background-color: #fcf8e3;
+            border: 1px solid #8a6d3b;
+            color: #8a6d3b;
+        }
+
+        #sensor-data-display {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 4px;
+        }
+
+        #sensor-data-display p {
+            margin: 5px 0;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9em;
+        }
+
+        #sensor-data-display p:last-child {
+            border-bottom: none;
+        }
+
+        .data-normal {
+            color: green;
+        }
+
+        .data-warning {
+            color: orange;
+        }
+
+        .data-critical {
+            color: red;
+        }
+
+        .data-undefined {
+            color: grey;
+        }
+
+        label {
+            margin-right: 10px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 8px 15px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+
+        button:hover {
+            background-color: #4cae5c;
+        }
+
+        button#disconnectBtn {
+            background-color: #d9534f;
+        }
+
+        button#disconnectBtn:hover {
+            background-color: #c9302c;
+        }
+    </style>
+</head>
+<body>
+<div id="container">
+    <h1>Мониторинг Данных Сенсора</h1>
+
+    <div id="controls">
+        <label for="sensorIdInput">ID Сенсора для мониторинга:</label>
+        <input type="text" id="sensorIdInput" placeholder="Введите UUID сенсора">
+        <button id="connectBtn">Подключиться</button>
+        <button id="disconnectBtn" disabled>Отключиться</button>
+    </div>
+
+    <div id="status" class="status-disconnected">Статус: Отключено</div>
+    <h2>Полученные данные:</h2>
+    <div id="sensor-data-display">
+        <p>Ожидание данных...</p>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+    let currentSubscription = null;
+    const MAX_MESSAGES = 30; // Максимальное количество отображаемых сообщений
+
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const sensorIdInput = document.getElementById('sensorIdInput');
+    const statusDiv = document.getElementById('status');
+    const dataDisplay = document.getElementById('sensor-data-display');
+
+    function setStatus(message, type) {
+        statusDiv.textContent = 'Статус: ' + message;
+        statusDiv.className = 'status-' + type; // status-connected, status-disconnected, status-connecting
+    }
+
+    function connect() {
+        const sensorId = sensorIdInput.value.trim();
+        if (!sensorId) {
+            alert('Пожалуйста, введите ID сенсора.');
+            return;
+        }
+
+        if (stompClient && stompClient.connected) {
+            console.log('Уже подключено. Сначала отключитесь.');
+            // Можно сначала автоматически отключаться, если уже есть активное соединение
+            // disconnect(); // и затем вызывать connect() снова в коллбэке disconnect
+            return;
+        }
+
+        clearDataDisplay();
+        setStatus('Подключение...', 'connecting');
+
+        // URL вашего WebSocket эндпоинта
+        const socket = new SockJS('http://localhost:8081/ws-monitoring'); // Убедитесь, что порт 8081 верный
+        stompClient = Stomp.over(socket);
+        // stompClient.debug = null; // Раскомментируйте для отключения отладочных сообщений STOMP в консоли
+
+        stompClient.connect({}, function (frame) {
+            setStatus('Подключено к ' + frame.headers['server'], 'connected');
+            console.log('Connected: ' + frame);
+            connectBtn.disabled = true;
+            disconnectBtn.disabled = false;
+            sensorIdInput.disabled = true;
+
+            // Отписываемся от предыдущего топика, если он был
+            if (currentSubscription) {
+                currentSubscription.unsubscribe();
+            }
+
+            // Подписываемся на топик для указанного сенсора
+            const topic = `/topic/sensor/${sensorId}/data`;
+            console.log('Subscribing to: ' + topic);
+            currentSubscription = stompClient.subscribe(topic, function (sensorDataMessage) {
+                try {
+                    const sensorData = JSON.parse(sensorDataMessage.body);
+                    showSensorData(sensorData);
+                } catch (e) {
+                    console.error("Ошибка парсинга JSON: ", e, sensorDataMessage.body);
+                    appendErrorMessage("Ошибка парсинга данных: " + sensorDataMessage.body);
+                }
+            });
+
+        }, function (error) {
+            console.error('STOMP ошибка подключения: ', error);
+            setStatus('Ошибка подключения! Попытка через 5 сек.', 'disconnected');
+            disconnectCleanup(); // Сбрасываем состояние кнопок
+            setTimeout(connect, 5000); // Попытка переподключения
+        });
+    }
+
+    function disconnect() {
+        if (stompClient !== null) {
+            if (currentSubscription) {
+                currentSubscription.unsubscribe();
+                currentSubscription = null;
+            }
+            stompClient.disconnect(function () {
+                console.log("Disconnected");
+                setStatus('Отключено', 'disconnected');
+                disconnectCleanup();
+            });
+        }
+    }
+
+    function disconnectCleanup() {
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+        sensorIdInput.disabled = false;
+        stompClient = null; // Сбрасываем клиент
+    }
+
+    function clearDataDisplay() {
+        dataDisplay.innerHTML = '<p>Ожидание данных...</p>';
+    }
+
+    function showSensorData(data) {
+        if (dataDisplay.firstChild && dataDisplay.firstChild.textContent === 'Ожидание данных...') {
+            dataDisplay.innerHTML = ''; // Очищаем "Ожидание данных..."
+        }
+
+        const p = document.createElement('p');
+        // Форматируем вывод времени для лучшей читаемости
+        const formattedTimestamp = data.timestamp ? new Date(data.timestamp).toLocaleString('ru-RU') : 'N/A';
+
+        p.innerHTML = `<strong>ID Сенсора:</strong> ${data.sensorId}<br>
+                           <strong>ID Техники:</strong> ${data.technicId || 'N/A'}<br>
+                           <strong>S/N:</strong> ${data.sensorSerialNumber}<br>
+                           <strong>Тип:</strong> ${data.sensorType || 'N/A'} |
+                           <strong>Значение:</strong> ${data.value} ${data.unitOfMeasurement || ''}<br>
+                           <strong>Статус:</strong> <span class="data-${(data.status || 'undefined').toLowerCase()}">${data.status || 'UNDEFINED'}</span><br>
+                           <strong>Время:</strong> ${formattedTimestamp}`;
+
+        // Добавляем класс в зависимости от статуса для стилизации
+        p.classList.add(`data-${(data.status || 'undefined').toLowerCase()}`);
+
+        dataDisplay.insertBefore(p, dataDisplay.firstChild); // Добавляем новое сообщение сверху
+
+        // Ограничиваем количество сообщений на экране
+        while (dataDisplay.childNodes.length > MAX_MESSAGES) {
+            dataDisplay.removeChild(dataDisplay.lastChild);
+        }
+    }
+
+    function appendErrorMessage(message) {
+        if (dataDisplay.firstChild && dataDisplay.firstChild.textContent === 'Ожидание данных...') {
+            dataDisplay.innerHTML = '';
+        }
+        const p = document.createElement('p');
+        p.style.color = 'red';
+        p.textContent = message;
+        dataDisplay.insertBefore(p, dataDisplay.firstChild);
+    }
+
+    connectBtn.addEventListener('click', connect);
+    disconnectBtn.addEventListener('click', disconnect);
+
+</script>
+</body>
+</html>
