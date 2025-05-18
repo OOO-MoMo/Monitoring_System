@@ -1,24 +1,47 @@
 package ru.momo.monitoring.store.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import ru.momo.monitoring.store.entities.SensorType;
 
 import java.util.Map;
 import java.util.UUID;
 
-@Schema(description = "DTO типа сенсора")
-public record SensorTypeDto(
-        @Schema(description = "UUID типа сенсора", example = "550e8400-e29b-41d4-a716-446655440000")
-        UUID id,
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "DTO для типа сенсора")
+public class SensorTypeDto {
 
-        @Schema(description = "Название типа", example = "Датчик давления")
-        String name,
+        @Schema(description = "Уникальный идентификатор типа сенсора")
+        private UUID id;
 
-        @Schema(description = "Единица измерения", example = "kPa")
-        String unit,
+        @Schema(description = "Название типа сенсора", example = "Датчик температуры")
+        private String name;
 
-        @Schema(description = "Описание типа", example = "Измерение давления в диапазоне 0-1000 kPa")
-        String description,
+        @Schema(description = "Единица измерения", example = "°C")
+        private String unit;
 
-        @Schema(description = "Метаданные в формате JSON", example = "{\"max_response_time\": \"100ms\"}")
-        Map<String, Object> metadata) {
+        @Schema(description = "Описание типа сенсора", example = "Измерение температуры")
+        private String description;
+
+        @Schema(description = "Дополнительные метаданные в формате JSON")
+        private Map<String, Object> metadata;
+
+        public static SensorTypeDto fromEntity(SensorType sensorType) {
+                if (sensorType == null) {
+                        return null;
+                }
+                return SensorTypeDto.builder()
+                        .id(sensorType.getId())
+                        .name(sensorType.getName())
+                        .unit(sensorType.getUnit())
+                        .description(sensorType.getDescription())
+                        .metadata(sensorType.getMetadata())
+                        .build();
+        }
 }
