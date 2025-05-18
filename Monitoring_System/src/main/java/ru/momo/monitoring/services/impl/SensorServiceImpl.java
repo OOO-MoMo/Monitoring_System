@@ -18,6 +18,7 @@ import ru.momo.monitoring.services.SensorTypeService;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.data_generator.RegisterSensorToGeneratorRequest;
+import ru.momo.monitoring.store.dto.report.SensorValueStatsDto;
 import ru.momo.monitoring.store.dto.request.CreateSensorRequest;
 import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
 import ru.momo.monitoring.store.dto.request.SensorDataHistoryDto;
@@ -41,6 +42,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -405,31 +407,23 @@ public class SensorServiceImpl implements SensorService {
             String granularityStr = granularity.name().toLowerCase();
             AggregationType aggTypeToUse = aggregationType != null ? aggregationType : AggregationType.AVG;
 
-            switch (aggTypeToUse) {
-                case AVG:
-                    nativeResults = sensorDataRepository.findNativeAggregatedAvgByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case MIN:
-                    nativeResults = sensorDataRepository.findNativeAggregatedMinByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case MAX:
-                    nativeResults = sensorDataRepository.findNativeAggregatedMaxByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case SUM:
-                    nativeResults = sensorDataRepository.findNativeAggregatedSumByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case COUNT:
-                    nativeResults = sensorDataRepository.findNativeAggregatedCountByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case LAST:
-                    nativeResults = sensorDataRepository.findNativeAggregatedLastByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case FIRST:
-                    nativeResults = sensorDataRepository.findNativeAggregatedFirstByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported aggregation type: " + aggTypeToUse);
-            }
+            nativeResults = switch (aggTypeToUse) {
+                case AVG ->
+                        sensorDataRepository.findNativeAggregatedAvgByGranularity(sensorId, from, to, granularityStr);
+                case MIN ->
+                        sensorDataRepository.findNativeAggregatedMinByGranularity(sensorId, from, to, granularityStr);
+                case MAX ->
+                        sensorDataRepository.findNativeAggregatedMaxByGranularity(sensorId, from, to, granularityStr);
+                case SUM ->
+                        sensorDataRepository.findNativeAggregatedSumByGranularity(sensorId, from, to, granularityStr);
+                case COUNT ->
+                        sensorDataRepository.findNativeAggregatedCountByGranularity(sensorId, from, to, granularityStr);
+                case LAST ->
+                        sensorDataRepository.findNativeAggregatedLastByGranularity(sensorId, from, to, granularityStr);
+                case FIRST ->
+                        sensorDataRepository.findNativeAggregatedFirstByGranularity(sensorId, from, to, granularityStr);
+                default -> throw new IllegalArgumentException("Unsupported aggregation type: " + aggTypeToUse);
+            };
 
             List<AggregatedSensorDataViewImpl> aggregatedViews = mapNativeResultsToView(nativeResults, aggTypeToUse);
 
@@ -437,6 +431,41 @@ public class SensorServiceImpl implements SensorService {
                     .map(this::mapAggregatedViewToHistoryDto)
                     .collect(Collectors.toList());
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SensorValueStatsDto getSensorValueStatisticsForPeriod(
+            UUID sensorId,
+            LocalDateTime from,
+            LocalDateTime to
+    ) {
+        if (!sensorRepository.existsById(sensorId)) {
+            throw new ResourceNotFoundException("Sensor not found with id: " + sensorId);
+        }
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("'from' date must be before 'to' date.");
+        }
+
+        Double minValue = sensorDataRepository.findMinValueInPeriod(sensorId, from, to).orElse(null);
+        Double maxValue = sensorDataRepository.findMaxValueInPeriod(sensorId, from, to).orElse(null);
+        Double avgValue = sensorDataRepository.findAvgValueInPeriod(sensorId, from, to).orElse(null);
+
+        Double lastValue = null;
+        Optional<Object[]> lastValueAndStatusOpt = sensorDataRepository.findLastValueAndStatusInPeriod(sensorId, from, to);
+        if (lastValueAndStatusOpt.isPresent()) {
+            Object[] lastData = lastValueAndStatusOpt.get();
+            if (lastData[0] instanceof Object[] array) {
+                lastValue = (Double) array[0];
+            }
+        }
+
+        return SensorValueStatsDto.builder()
+                .minValue(minValue)
+                .maxValue(maxValue)
+                .avgValue(avgValue)
+                .lastValue(lastValue)
+                .build();
     }
 
     private List<AggregatedSensorDataViewImpl> mapNativeResultsToView(List<Object[]> nativeResults, AggregationType aggType) {
