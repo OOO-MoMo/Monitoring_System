@@ -1,6 +1,9 @@
 package ru.momo.monitoring.services.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.client.SensorGeneratorClient;
@@ -17,17 +20,25 @@ import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.data_generator.RegisterSensorToGeneratorRequest;
 import ru.momo.monitoring.store.dto.request.CreateSensorRequest;
 import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
+import ru.momo.monitoring.store.dto.request.SensorDataHistoryDto;
 import ru.momo.monitoring.store.dto.request.UpdateSensorRequest;
 import ru.momo.monitoring.store.dto.response.SensorDto;
 import ru.momo.monitoring.store.dto.response.SensorsDto;
 import ru.momo.monitoring.store.entities.Sensor;
+import ru.momo.monitoring.store.entities.SensorData;
 import ru.momo.monitoring.store.entities.SensorType;
 import ru.momo.monitoring.store.entities.Technic;
 import ru.momo.monitoring.store.entities.User;
+import ru.momo.monitoring.store.entities.enums.AggregationType;
+import ru.momo.monitoring.store.entities.enums.DataGranularity;
 import ru.momo.monitoring.store.entities.enums.RoleName;
-import ru.momo.monitoring.store.mapper.SensorMapper;
+import ru.momo.monitoring.store.entities.enums.SensorStatus;
+import ru.momo.monitoring.store.projection.AggregatedSensorDataViewImpl;
+import ru.momo.monitoring.store.repositories.SensorDataRepository;
 import ru.momo.monitoring.store.repositories.SensorRepository;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +46,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SensorServiceImpl implements SensorService {
 
     private final SensorRepository sensorRepository;
@@ -43,8 +55,6 @@ public class SensorServiceImpl implements SensorService {
 
     private final SensorTypeService sensorTypeService;
 
-    private final SensorMapper sensorMapper;
-
     private final TechnicService technicService;
 
     private final CompanyService companyService;
@@ -52,6 +62,8 @@ public class SensorServiceImpl implements SensorService {
     private final SecurityService securityService;
 
     private final SensorGeneratorClient sensorGeneratorClient;
+
+    private final SensorDataRepository sensorDataRepository;
 
     @Override
     @Transactional
@@ -332,107 +344,165 @@ public class SensorServiceImpl implements SensorService {
         return authorized;
     }
 
-/*    private final SensorRepository sensorRepository;
-    private final TechnicRepository technicRepository;
-
     @Override
-    public SensorResponseDto getSensorById(Long id) {
-        return SensorResponseDto.mapFromEntity(getSensor(id));
-    }
+    @Transactional(readOnly = true)
+    public SensorsDto getAllSensorsPaged(Boolean attachedToTechnic, Pageable pageable) {
+        Page<Sensor> sensorPage;
 
-    @Override
-    public SensorCreatedResponseDto create(SensorCreateRequestDto request) {
-        if (sensorRepository.findByType(request.getType().toLowerCase()).isPresent()) {
-            throw new SensorBadRequestException("Sensor with type %s already exists", request.getType());
-        }
-
-        Sensor sensor = SensorCreateRequestDto.mapToEntity(request);
-        sensorRepository.save(sensor);
-
-        return SensorCreatedResponseDto.mapFromEntity(sensor);
-    }
-
-    @Override
-    public SensorToTechnicResponseDto actionSensorToTechnic(SensorToTechnicRequestDto request) {
-        Sensor sensor = getSensor(request.getSensorId());
-
-        Technic technic = technicRepository
-                .findById(request.getTechnicId())
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("Technic with id = %d is not exist", request.getTechnicId())
-                );
-
-        boolean isSensorExist = technic
-                .getSensors()
-                .stream()
-                .anyMatch(e -> e.equals(sensor));
-
-        if (request.getAction().equals(SensorToTechnicRequestDto.ATTACH)) {
-            attachSensorToTechnic(sensor, technic, isSensorExist);
+        if (attachedToTechnic == null) {
+            sensorPage = sensorRepository.findAll(pageable);
+        } else if (Boolean.TRUE.equals(attachedToTechnic)) {
+            sensorPage = sensorRepository.findByTechnicIsNotNull(pageable);
         } else {
-            unpinSensorFromTechnic(sensor, technic, isSensorExist);
+            sensorPage = sensorRepository.findByTechnicIsNull(pageable);
         }
 
-        return new SensorToTechnicResponseDto(request);
-    }
+        List<SensorDto> dtoList = sensorPage.getContent().stream()
+                .map(SensorDto::toDto)
+                .collect(Collectors.toList());
 
-    private void unpinSensorFromTechnic(Sensor sensor, Technic technic, boolean isSensorExist) {
-        if (!isSensorExist) {
-            throw new SensorBadRequestException(
-                    "Technic with id = %d have not sensor with id = %d ",
-                    technic.getId(),
-                    sensor.getSensorId()
-            );
-        }
-
-        technic.getSensors().remove(sensor);
-
-        technicRepository.save(technic);
-    }
-
-    private void attachSensorToTechnic(Sensor sensor, Technic technic, boolean isSensorExist) {
-        if (isSensorExist) {
-            throw new SensorBadRequestException(
-                    "Technic with id = %d is already have sensor with id = %d ",
-                    technic.getId(),
-                    sensor.getSensorId()
-            );
-        }
-
-        technic.getSensors().add(sensor);
-
-        technicRepository.save(technic);
+        return new SensorsDto(dtoList);
     }
 
     @Override
-    public List<SensorResponseDto> getSensorByTechnicId(UUID technicId) {
-        List<Sensor> response = null;
+    @Transactional(readOnly = true)
+    public List<SensorDataHistoryDto> getSensorDataHistory(
+            UUID sensorId,
+            LocalDateTime from,
+            LocalDateTime to,
+            DataGranularity granularity,
+            AggregationType aggregationType
+    ) {
+        Sensor sensor = sensorRepository.findByIdOrThrow(sensorId);
+        User user = securityService.getCurrentUser();
+        RoleName roleName = user.getRole();
+        boolean authorized = false;
 
-        if (technicRepository.existsById(technicId)) {
-            response = sensorRepository.findByTechnicId(technicId);
-        } return response != null
-                ? response.stream().map(SensorResponseDto::mapFromEntity).toList()
-                : null;
+        if (roleName.equals(RoleName.ROLE_ADMIN)) {
+            authorized = true;
+        } else if (roleName.equals(RoleName.ROLE_MANAGER)) {
+            if (sensor.getCompany() != null && user.getCompany() != null &&
+                    sensor.getCompany().getId().equals(user.getCompany().getId())) {
+                authorized = true;
+            }
+        }
+
+        if (!authorized) {
+            throw new AccessDeniedException("User does not have permission to access sensors for this technic.");
+        }
+
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("'from' date must be before 'to' date.");
+        }
+
+        if (granularity == null || granularity == DataGranularity.RAW) {
+            List<SensorData> rawData = sensorDataRepository.findBySensorIdAndTimestampBetweenOrderByTimestampAsc(sensorId, from, to);
+            return rawData.stream()
+                    .map(this::mapSensorDataToRawHistoryDto)
+                    .collect(Collectors.toList());
+        } else {
+            List<Object[]> nativeResults;
+            String granularityStr = granularity.name().toLowerCase();
+            AggregationType aggTypeToUse = aggregationType != null ? aggregationType : AggregationType.AVG;
+
+            switch (aggTypeToUse) {
+                case AVG:
+                    nativeResults = sensorDataRepository.findNativeAggregatedAvgByGranularity(sensorId, from, to, granularityStr);
+                    break;
+                case MIN:
+                    nativeResults = sensorDataRepository.findNativeAggregatedMinByGranularity(sensorId, from, to, granularityStr);
+                    break;
+                case MAX:
+                    nativeResults = sensorDataRepository.findNativeAggregatedMaxByGranularity(sensorId, from, to, granularityStr);
+                    break;
+                case SUM:
+                    nativeResults = sensorDataRepository.findNativeAggregatedSumByGranularity(sensorId, from, to, granularityStr);
+                    break;
+                case COUNT:
+                    nativeResults = sensorDataRepository.findNativeAggregatedCountByGranularity(sensorId, from, to, granularityStr);
+                    break;
+                case LAST:
+                    nativeResults = sensorDataRepository.findNativeAggregatedLastByGranularity(sensorId, from, to, granularityStr);
+                    break;
+                case FIRST:
+                    nativeResults = sensorDataRepository.findNativeAggregatedFirstByGranularity(sensorId, from, to, granularityStr);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported aggregation type: " + aggTypeToUse);
+            }
+
+            List<AggregatedSensorDataViewImpl> aggregatedViews = mapNativeResultsToView(nativeResults, aggTypeToUse);
+
+            return aggregatedViews.stream()
+                    .map(this::mapAggregatedViewToHistoryDto)
+                    .collect(Collectors.toList());
+        }
     }
 
-    @Override
-    public void delete(Long id) {
-        Sensor deletedSensor = sensorRepository
-                .findById(id)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier(
-                                "Sensor with id = %d is not exist", id
-                        )
-                );
-        sensorRepository.delete(deletedSensor);
+    private List<AggregatedSensorDataViewImpl> mapNativeResultsToView(List<Object[]> nativeResults, AggregationType aggType) {
+        return nativeResults.stream().map(row -> {
+            LocalDateTime timestamp = null;
+            if (row[0] instanceof Timestamp) {
+                timestamp = ((Timestamp) row[0]).toLocalDateTime();
+            } else if (row[0] instanceof LocalDateTime) {
+                timestamp = (LocalDateTime) row[0];
+            }
+
+
+            Double value = null;
+            if (row[1] instanceof Number) {
+                value = ((Number) row[1]).doubleValue();
+            } else if (row[1] != null) {
+                try {
+                    value = Double.parseDouble(row[1].toString());
+                } catch (NumberFormatException e) {
+                    log.warn("Cannot parse value from native query: {}", row[1]);
+                }
+            }
+
+            SensorStatus status = null;
+            if ((aggType == AggregationType.FIRST || aggType == AggregationType.LAST) && row.length > 2 && row[2] != null) {
+                if (row[2] instanceof String) {
+                    try {
+                        status = SensorStatus.valueOf(((String) row[2]).toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Cannot parse status '{}' from native query", row[2]);
+                        status = SensorStatus.UNDEFINED;
+                    }
+                } else if (row[2] instanceof SensorStatus) {
+                    status = (SensorStatus) row[2];
+                }
+            }
+            return new AggregatedSensorDataViewImpl(timestamp, value, status);
+        }).collect(Collectors.toList());
     }
 
-    private Sensor getSensor(Long id) {
-        return sensorRepository
-                .findById(id)
-                .orElseThrow(
-                        resourceNotFoundExceptionSupplier("Sensor with id = %d is not exist", id)
-                );
-    }*/
+    private SensorDataHistoryDto mapSensorDataToRawHistoryDto(SensorData data) {
+        Double numericValue = null;
+        if (data.getValue() != null && !data.getValue().isBlank()) {
+            numericValue = Double.parseDouble(data.getValue().replace(',', '.'));
+        }
+        return SensorDataHistoryDto.builder()
+                .timestamp(data.getTimestamp())
+                .value(numericValue)
+                .status(data.getStatus())
+                .build();
+    }
+
+    private SensorDataHistoryDto mapAggregatedViewToHistoryDto(AggregatedSensorDataView aggregatedView) {
+        return SensorDataHistoryDto.builder()
+                .timestamp(aggregatedView.getIntervalStart())
+                .value(aggregatedView.getAggregatedValue())
+                .status(aggregatedView.getAggregatedStatus())
+                .build();
+    }
+
+    public interface AggregatedSensorDataView {
+        LocalDateTime getIntervalStart();
+
+        Double getAggregatedValue();
+
+        SensorStatus getAggregatedStatus();
+    }
 
 }

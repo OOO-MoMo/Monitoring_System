@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.momo.monitoring.exceptions.ResourceNotFoundException;
 import ru.momo.monitoring.exceptions.SensorBadRequestException;
 import ru.momo.monitoring.services.SensorService;
 import ru.momo.monitoring.services.SensorTypeService;
@@ -12,22 +13,21 @@ import ru.momo.monitoring.store.dto.request.SensorTypeDto;
 import ru.momo.monitoring.store.dto.request.UpdateSensorTypeRequest;
 import ru.momo.monitoring.store.dto.response.SensorTypesDto;
 import ru.momo.monitoring.store.entities.SensorType;
-import ru.momo.monitoring.store.mapper.SensorTypeMapper;
 import ru.momo.monitoring.store.repositories.SensorTypeRepository;
 
+import java.util.HashMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class SensorTypeServiceImpl implements SensorTypeService {
 
     private final SensorTypeRepository sensorTypeRepository;
-    private final SensorTypeMapper sensorTypeMapper;
     private SensorService sensorService;
 
     @Autowired
-    public SensorTypeServiceImpl(SensorTypeRepository sensorTypeRepository, SensorTypeMapper sensorTypeMapper) {
+    public SensorTypeServiceImpl(SensorTypeRepository sensorTypeRepository) {
         this.sensorTypeRepository = sensorTypeRepository;
-        this.sensorTypeMapper = sensorTypeMapper;
     }
 
     @Autowired
@@ -40,9 +40,18 @@ public class SensorTypeServiceImpl implements SensorTypeService {
     public SensorTypeDto createSensorType(CreateSensorTypeRequest request) {
         sensorTypeRepository.throwIfExistsWithSameName(request.name());
 
-        SensorType sensorType = sensorTypeMapper.toEntity(request);
+        SensorType sensorType = new SensorType();
+        sensorType.setName(request.name());
+        sensorType.setUnit(request.unit());
+        sensorType.setDescription(request.description());
+        if (request.metadata() != null) {
+            sensorType.setMetadata(new HashMap<>(request.metadata()));
+        } else {
+            sensorType.setMetadata(new HashMap<>());
+        }
 
-        return sensorTypeMapper.toDto(sensorTypeRepository.save(sensorType));
+        SensorType savedSensorType = sensorTypeRepository.save(sensorType);
+        return SensorTypeDto.fromEntity(savedSensorType);
     }
 
     @Transactional(readOnly = true)
@@ -51,18 +60,20 @@ public class SensorTypeServiceImpl implements SensorTypeService {
         return new SensorTypesDto(
                 sensorTypeRepository.findAll()
                         .stream()
-                        .map(sensorTypeMapper::toDto)
-                        .toList()
+                        .map(SensorTypeDto::fromEntity)
+                        .collect(Collectors.toList())
         );
     }
 
     @Transactional(readOnly = true)
     @Override
     public SensorTypeDto getSensorTypeById(UUID id) {
-        return sensorTypeMapper.toDto(sensorTypeRepository.getByIdOrThrow(id));
+        SensorType sensorType = sensorTypeRepository.getByIdOrThrow(id);
+        return SensorTypeDto.fromEntity(sensorType);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SensorType getSensorTypeEntityById(UUID id) {
         return sensorTypeRepository.getByIdOrThrow(id);
     }
@@ -74,18 +85,28 @@ public class SensorTypeServiceImpl implements SensorTypeService {
 
         SensorType existingSensorType = sensorTypeRepository.getByIdOrThrow(id);
 
-        sensorTypeMapper.updateEntityFromRequest(request, existingSensorType);
+        if (request.name() != null && !request.name().isBlank()) {
+            existingSensorType.setName(request.name());
+        }
+        if (request.unit() != null && !request.unit().isBlank()) {
+            existingSensorType.setUnit(request.unit());
+        }
+
+        existingSensorType.setDescription(request.description());
+
+        if (request.metadata() != null) {
+            existingSensorType.setMetadata(new HashMap<>(request.metadata()));
+        }
 
         SensorType updatedSensorType = sensorTypeRepository.save(existingSensorType);
-
-        return sensorTypeMapper.toDto(updatedSensorType);
+        return SensorTypeDto.fromEntity(updatedSensorType);
     }
 
     @Transactional
     @Override
     public void deleteSensorType(UUID id) {
         if (!sensorTypeRepository.existsById(id)) {
-            sensorTypeRepository.getByIdOrThrow(id);
+            throw new ResourceNotFoundException("SensorType with id " + id + " not found.");
         }
 
         if (sensorService.existsByTypeId(id)) {
@@ -96,5 +117,4 @@ public class SensorTypeServiceImpl implements SensorTypeService {
 
         sensorTypeRepository.deleteById(id);
     }
-
 }
