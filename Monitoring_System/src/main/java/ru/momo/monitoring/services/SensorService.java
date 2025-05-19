@@ -2,6 +2,7 @@ package ru.momo.monitoring.services;
 
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
+import ru.momo.monitoring.store.dto.report.SensorValueStatsDto;
 import ru.momo.monitoring.store.dto.request.CreateSensorRequest;
 import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
 import ru.momo.monitoring.store.dto.request.SensorDataHistoryDto;
@@ -18,11 +19,11 @@ import java.util.UUID;
 
 public interface SensorService {
 
-    SensorDto registerSensor(@Valid CreateSensorRequest request, String email);
+    SensorDto registerSensor(@Valid CreateSensorRequest request);
 
-    void assignToTechnic(@Valid SensorAssignmentRequest request, String email);
+    void assignToTechnic(@Valid SensorAssignmentRequest request);
 
-    void unassignFromTechnic(@Valid SensorAssignmentRequest request, String email);
+    void unassignFromTechnic(@Valid SensorAssignmentRequest request);
 
     SensorsDto getAllCompanySensors(String email);
 
@@ -60,6 +61,20 @@ public interface SensorService {
             LocalDateTime to,
             DataGranularity granularity,
             AggregationType aggregationType
+    );
+
+    /**
+     * Получает статистику по значениям (min, max, avg, last) для указанного сенсора за период.
+     *
+     * @param sensorId ID сенсора.
+     * @param from     Начало периода (UTC).
+     * @param to       Конец периода (UTC).
+     * @return DTO со статистикой значений.
+     */
+    SensorValueStatsDto getSensorValueStatisticsForPeriod(
+            UUID sensorId,
+            LocalDateTime from,
+            LocalDateTime to
     );
 
 }

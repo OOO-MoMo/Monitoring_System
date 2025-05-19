@@ -31,6 +31,13 @@ public record CreateSensorRequest(
                 example = "d9a5c4e1-0b7a-4e1a-8f3c-123456789abc"
         )
         @NotNull
-        UUID sensorTypeId
+        UUID sensorTypeId,
+
+        @Schema(
+                description = "Company ID",
+                example = "d9a5c4e1-4e1a-0b7a-8f3c-123456789abc"
+        )
+        @NotNull
+        UUID companyId
 ) {
 }

@@ -8,6 +8,7 @@ import ru.momo.monitoring.store.entities.SensorData;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -152,4 +153,59 @@ public interface SensorDataRepository extends JpaRepository<SensorData, UUID> {
             @Param("toTime") LocalDateTime toTime,
             @Param("granularity") String granularity
     );
+
+    @Query(value = "SELECT CAST(sd.status AS text) as status_text, COUNT(sd.id) as count " +
+            "FROM sensor_data sd " +
+            "WHERE sd.sensor_id = :sensorId " +
+            "  AND sd.timestamp >= :fromTime " +
+            "  AND sd.timestamp < :toTime " +
+            "  AND sd.status IN ('CRITICAL', 'WARNING') " +
+            "GROUP BY sd.status", nativeQuery = true)
+    List<Object[]> countSensorStatusesInPeriod(
+            @Param("sensorId") UUID sensorId,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    @Query(value = "SELECT AVG(CAST(NULLIF(regexp_replace(REPLACE(sd.value, ',', '.'), '[^0-9.-]+', '', 'g'), '') AS double precision)) " +
+            "FROM sensor_data sd " +
+            "WHERE sd.sensor_id = :sensorId AND sd.timestamp >= :fromTime AND sd.timestamp < :toTime", nativeQuery = true)
+    Optional<Double> findAvgValueInPeriod(
+            @Param("sensorId") UUID sensorId,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    @Query(value = "SELECT MIN(CAST(NULLIF(regexp_replace(REPLACE(sd.value, ',', '.'), '[^0-9.-]+', '', 'g'), '') AS double precision)) " +
+            "FROM sensor_data sd " +
+            "WHERE sd.sensor_id = :sensorId AND sd.timestamp >= :fromTime AND sd.timestamp < :toTime", nativeQuery = true)
+    Optional<Double> findMinValueInPeriod(
+            @Param("sensorId") UUID sensorId,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    @Query(value = "SELECT MAX(CAST(NULLIF(regexp_replace(REPLACE(sd.value, ',', '.'), '[^0-9.-]+', '', 'g'), '') AS double precision)) " +
+            "FROM sensor_data sd " +
+            "WHERE sd.sensor_id = :sensorId AND sd.timestamp >= :fromTime AND sd.timestamp < :toTime", nativeQuery = true)
+    Optional<Double> findMaxValueInPeriod(
+            @Param("sensorId") UUID sensorId,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    // Для LAST значения и статуса
+    @Query(value = "SELECT " +
+            "    CAST(NULLIF(regexp_replace(REPLACE(sd.value, ',', '.'), '[^0-9.-]+', '', 'g'), '') AS double precision) as last_value, " + // Первый элемент Object[0]
+            "    CAST(sd.status AS text) as last_status " +
+            "FROM sensor_data sd " +
+            "WHERE sd.sensor_id = :sensorId AND sd.timestamp >= :fromTime AND sd.timestamp < :toTime " +
+            "ORDER BY sd.timestamp DESC " +
+            "LIMIT 1", nativeQuery = true)
+    Optional<Object[]> findLastValueAndStatusInPeriod(
+            @Param("sensorId") UUID sensorId,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
 }

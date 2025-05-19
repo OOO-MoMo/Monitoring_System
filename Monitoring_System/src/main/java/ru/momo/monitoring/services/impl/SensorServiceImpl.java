@@ -18,12 +18,14 @@ import ru.momo.monitoring.services.SensorTypeService;
 import ru.momo.monitoring.services.TechnicService;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.data_generator.RegisterSensorToGeneratorRequest;
+import ru.momo.monitoring.store.dto.report.SensorValueStatsDto;
 import ru.momo.monitoring.store.dto.request.CreateSensorRequest;
 import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
 import ru.momo.monitoring.store.dto.request.SensorDataHistoryDto;
 import ru.momo.monitoring.store.dto.request.UpdateSensorRequest;
 import ru.momo.monitoring.store.dto.response.SensorDto;
 import ru.momo.monitoring.store.dto.response.SensorsDto;
+import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.SensorData;
 import ru.momo.monitoring.store.entities.SensorType;
@@ -41,6 +43,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -67,10 +70,9 @@ public class SensorServiceImpl implements SensorService {
 
     @Override
     @Transactional
-    public SensorDto registerSensor(CreateSensorRequest request, String email) {
+    public SensorDto registerSensor(CreateSensorRequest request) {
         SensorType sensorType = sensorTypeService.getSensorTypeEntityById(request.sensorTypeId());
-
-        User user = userService.getByEmail(email);
+        Company sensorCompany = companyService.findById(request.companyId());
 
         sensorRepository.throwIfExistsWithSameSerialNumber(request.serialNumber());
 
@@ -81,7 +83,7 @@ public class SensorServiceImpl implements SensorService {
         sensor.setMinValue(request.minValue());
         sensor.setMaxValue(request.maxValue());
         sensor.setProductionDate(request.productionDate());
-        sensor.setCompany(user.getCompany());
+        sensor.setCompany(sensorCompany);
         sensor.setIsActive(true);
 
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
@@ -124,16 +126,9 @@ public class SensorServiceImpl implements SensorService {
 
     @Override
     @Transactional
-    public void assignToTechnic(SensorAssignmentRequest request, String email) {
+    public void assignToTechnic(SensorAssignmentRequest request) {
         Sensor sensor = sensorRepository.findByIdOrThrow(request.sensorId());
-
-        User manager = userService.getByEmail(email);
-
-        if (sensor.getCompany().getId() != manager.getCompany().getId()) {
-            throw new SensorBadRequestException("Sensor assigned to another company");
-        }
-
-        Technic technic = technicService.findByCompanyAndId(manager.getCompany().getId(), request.technicId());
+        Technic technic = technicService.getEntityById(request.technicId());
 
         if (technic.getSensors().stream().anyMatch(s -> s.getId().equals(sensor.getId()))) {
             throw new EntityDuplicationException("Sensor already assigned to this technic");
@@ -142,6 +137,7 @@ public class SensorServiceImpl implements SensorService {
         technic.getSensors().add(sensor);
         sensor.setTechnic(technic);
         sensor.setIsActive(true);
+        sensor.setCompany(technic.getCompany());
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
         technicService.save(technic);
 
@@ -153,18 +149,10 @@ public class SensorServiceImpl implements SensorService {
 
     @Override
     @Transactional
-    public void unassignFromTechnic(SensorAssignmentRequest request, String email) {
+    public void unassignFromTechnic(SensorAssignmentRequest request) {
         Sensor sensor = sensorRepository.findByIdOrThrow(request.sensorId());
-        User manager = userService.getByEmail(email);
 
-        if (!sensor.getCompany().getId().equals(manager.getCompany().getId())) {
-            throw new SensorBadRequestException("Sensor belongs to another company");
-        }
-
-        Technic technic = technicService.findByCompanyAndId(
-                manager.getCompany().getId(),
-                request.technicId()
-        );
+        Technic technic = technicService.getEntityById(request.technicId());
 
         if (sensor.getTechnic() == null || !technic.equals(sensor.getTechnic())) {
             throw new SensorBadRequestException("Sensor is not assigned to this technic");
@@ -172,6 +160,7 @@ public class SensorServiceImpl implements SensorService {
 
         technic.getSensors().remove(sensor);
         sensor.setTechnic(null);
+        sensor.setCompany(null);
         sensor.setIsActive(false);
 
         technicService.save(technic);
@@ -405,31 +394,23 @@ public class SensorServiceImpl implements SensorService {
             String granularityStr = granularity.name().toLowerCase();
             AggregationType aggTypeToUse = aggregationType != null ? aggregationType : AggregationType.AVG;
 
-            switch (aggTypeToUse) {
-                case AVG:
-                    nativeResults = sensorDataRepository.findNativeAggregatedAvgByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case MIN:
-                    nativeResults = sensorDataRepository.findNativeAggregatedMinByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case MAX:
-                    nativeResults = sensorDataRepository.findNativeAggregatedMaxByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case SUM:
-                    nativeResults = sensorDataRepository.findNativeAggregatedSumByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case COUNT:
-                    nativeResults = sensorDataRepository.findNativeAggregatedCountByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case LAST:
-                    nativeResults = sensorDataRepository.findNativeAggregatedLastByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                case FIRST:
-                    nativeResults = sensorDataRepository.findNativeAggregatedFirstByGranularity(sensorId, from, to, granularityStr);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported aggregation type: " + aggTypeToUse);
-            }
+            nativeResults = switch (aggTypeToUse) {
+                case AVG ->
+                        sensorDataRepository.findNativeAggregatedAvgByGranularity(sensorId, from, to, granularityStr);
+                case MIN ->
+                        sensorDataRepository.findNativeAggregatedMinByGranularity(sensorId, from, to, granularityStr);
+                case MAX ->
+                        sensorDataRepository.findNativeAggregatedMaxByGranularity(sensorId, from, to, granularityStr);
+                case SUM ->
+                        sensorDataRepository.findNativeAggregatedSumByGranularity(sensorId, from, to, granularityStr);
+                case COUNT ->
+                        sensorDataRepository.findNativeAggregatedCountByGranularity(sensorId, from, to, granularityStr);
+                case LAST ->
+                        sensorDataRepository.findNativeAggregatedLastByGranularity(sensorId, from, to, granularityStr);
+                case FIRST ->
+                        sensorDataRepository.findNativeAggregatedFirstByGranularity(sensorId, from, to, granularityStr);
+                default -> throw new IllegalArgumentException("Unsupported aggregation type: " + aggTypeToUse);
+            };
 
             List<AggregatedSensorDataViewImpl> aggregatedViews = mapNativeResultsToView(nativeResults, aggTypeToUse);
 
@@ -437,6 +418,41 @@ public class SensorServiceImpl implements SensorService {
                     .map(this::mapAggregatedViewToHistoryDto)
                     .collect(Collectors.toList());
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SensorValueStatsDto getSensorValueStatisticsForPeriod(
+            UUID sensorId,
+            LocalDateTime from,
+            LocalDateTime to
+    ) {
+        if (!sensorRepository.existsById(sensorId)) {
+            throw new ResourceNotFoundException("Sensor not found with id: " + sensorId);
+        }
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("'from' date must be before 'to' date.");
+        }
+
+        Double minValue = sensorDataRepository.findMinValueInPeriod(sensorId, from, to).orElse(null);
+        Double maxValue = sensorDataRepository.findMaxValueInPeriod(sensorId, from, to).orElse(null);
+        Double avgValue = sensorDataRepository.findAvgValueInPeriod(sensorId, from, to).orElse(null);
+
+        Double lastValue = null;
+        Optional<Object[]> lastValueAndStatusOpt = sensorDataRepository.findLastValueAndStatusInPeriod(sensorId, from, to);
+        if (lastValueAndStatusOpt.isPresent()) {
+            Object[] lastData = lastValueAndStatusOpt.get();
+            if (lastData[0] instanceof Object[] array) {
+                lastValue = (Double) array[0];
+            }
+        }
+
+        return SensorValueStatsDto.builder()
+                .minValue(minValue)
+                .maxValue(maxValue)
+                .avgValue(avgValue)
+                .lastValue(lastValue)
+                .build();
     }
 
     private List<AggregatedSensorDataViewImpl> mapNativeResultsToView(List<Object[]> nativeResults, AggregationType aggType) {
