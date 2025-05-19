@@ -87,14 +87,13 @@ public class SensorController {
             )
     })
     public SensorDto registerSensor(
-            @Parameter(hidden = true) Principal principal,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Данные для создания сенсора",
                     required = true
             )
             @Valid @RequestBody CreateSensorRequest request
     ) {
-        return sensorService.registerSensor(request, principal.getName());
+        return sensorService.registerSensor(request);
     }
 
     @PostMapping("/assign")
@@ -136,14 +135,13 @@ public class SensorController {
             )
     })
     public void assignToTechnic(
-            @Parameter(hidden = true) Principal principal,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Данные для привязки сенсора",
                     required = true
             )
             @Valid @RequestBody SensorAssignmentRequest request
     ) {
-        sensorService.assignToTechnic(request, principal.getName());
+        sensorService.assignToTechnic(request);
     }
 
     @PostMapping("/unassign")
@@ -185,14 +183,13 @@ public class SensorController {
             )
     })
     public void unassignFromTechnic(
-            @Parameter(hidden = true) Principal principal,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Данные для отвязки сенсора",
                     required = true
             )
             @Valid @RequestBody SensorAssignmentRequest request
     ) {
-        sensorService.unassignFromTechnic(request, principal.getName());
+        sensorService.unassignFromTechnic(request);
     }
 
     @GetMapping

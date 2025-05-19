@@ -19,11 +19,11 @@ import java.util.UUID;
 
 public interface SensorService {
 
-    SensorDto registerSensor(@Valid CreateSensorRequest request, String email);
+    SensorDto registerSensor(@Valid CreateSensorRequest request);
 
-    void assignToTechnic(@Valid SensorAssignmentRequest request, String email);
+    void assignToTechnic(@Valid SensorAssignmentRequest request);
 
-    void unassignFromTechnic(@Valid SensorAssignmentRequest request, String email);
+    void unassignFromTechnic(@Valid SensorAssignmentRequest request);
 
     SensorsDto getAllCompanySensors(String email);
 

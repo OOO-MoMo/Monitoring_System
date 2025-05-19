@@ -25,6 +25,7 @@ import ru.momo.monitoring.store.dto.request.SensorDataHistoryDto;
 import ru.momo.monitoring.store.dto.request.UpdateSensorRequest;
 import ru.momo.monitoring.store.dto.response.SensorDto;
 import ru.momo.monitoring.store.dto.response.SensorsDto;
+import ru.momo.monitoring.store.entities.Company;
 import ru.momo.monitoring.store.entities.Sensor;
 import ru.momo.monitoring.store.entities.SensorData;
 import ru.momo.monitoring.store.entities.SensorType;
@@ -69,10 +70,9 @@ public class SensorServiceImpl implements SensorService {
 
     @Override
     @Transactional
-    public SensorDto registerSensor(CreateSensorRequest request, String email) {
+    public SensorDto registerSensor(CreateSensorRequest request) {
         SensorType sensorType = sensorTypeService.getSensorTypeEntityById(request.sensorTypeId());
-
-        User user = userService.getByEmail(email);
+        Company sensorCompany = companyService.findById(request.companyId());
 
         sensorRepository.throwIfExistsWithSameSerialNumber(request.serialNumber());
 
@@ -83,7 +83,7 @@ public class SensorServiceImpl implements SensorService {
         sensor.setMinValue(request.minValue());
         sensor.setMaxValue(request.maxValue());
         sensor.setProductionDate(request.productionDate());
-        sensor.setCompany(user.getCompany());
+        sensor.setCompany(sensorCompany);
         sensor.setIsActive(true);
 
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
@@ -126,16 +126,9 @@ public class SensorServiceImpl implements SensorService {
 
     @Override
     @Transactional
-    public void assignToTechnic(SensorAssignmentRequest request, String email) {
+    public void assignToTechnic(SensorAssignmentRequest request) {
         Sensor sensor = sensorRepository.findByIdOrThrow(request.sensorId());
-
-        User manager = userService.getByEmail(email);
-
-        if (sensor.getCompany().getId() != manager.getCompany().getId()) {
-            throw new SensorBadRequestException("Sensor assigned to another company");
-        }
-
-        Technic technic = technicService.findByCompanyAndId(manager.getCompany().getId(), request.technicId());
+        Technic technic = technicService.getEntityById(request.technicId());
 
         if (technic.getSensors().stream().anyMatch(s -> s.getId().equals(sensor.getId()))) {
             throw new EntityDuplicationException("Sensor already assigned to this technic");
@@ -144,6 +137,7 @@ public class SensorServiceImpl implements SensorService {
         technic.getSensors().add(sensor);
         sensor.setTechnic(technic);
         sensor.setIsActive(true);
+        sensor.setCompany(technic.getCompany());
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
         technicService.save(technic);
 
@@ -155,18 +149,10 @@ public class SensorServiceImpl implements SensorService {
 
     @Override
     @Transactional
-    public void unassignFromTechnic(SensorAssignmentRequest request, String email) {
+    public void unassignFromTechnic(SensorAssignmentRequest request) {
         Sensor sensor = sensorRepository.findByIdOrThrow(request.sensorId());
-        User manager = userService.getByEmail(email);
 
-        if (!sensor.getCompany().getId().equals(manager.getCompany().getId())) {
-            throw new SensorBadRequestException("Sensor belongs to another company");
-        }
-
-        Technic technic = technicService.findByCompanyAndId(
-                manager.getCompany().getId(),
-                request.technicId()
-        );
+        Technic technic = technicService.getEntityById(request.technicId());
 
         if (sensor.getTechnic() == null || !technic.equals(sensor.getTechnic())) {
             throw new SensorBadRequestException("Sensor is not assigned to this technic");
@@ -174,6 +160,7 @@ public class SensorServiceImpl implements SensorService {
 
         technic.getSensors().remove(sensor);
         sensor.setTechnic(null);
+        sensor.setCompany(null);
         sensor.setIsActive(false);
 
         technicService.save(technic);
