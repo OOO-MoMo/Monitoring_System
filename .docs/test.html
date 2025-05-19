@@ -12,6 +12,9 @@
             font-family: Arial, sans-serif;
             margin: 20px;
             background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         #container {
@@ -19,16 +22,36 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 800px;
         }
 
-        h1 {
+        h1, h2 {
             color: #333;
+            text-align: center;
         }
+
+        #auth-controls, #controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+
+        #auth-controls p {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+
 
         #status {
             margin-bottom: 15px;
             padding: 10px;
             border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
         }
 
         .status-connected {
@@ -63,6 +86,7 @@
             padding: 8px;
             border-bottom: 1px solid #eee;
             font-size: 0.9em;
+            line-height: 1.4;
         }
 
         #sensor-data-display p:last-child {
@@ -70,54 +94,62 @@
         }
 
         .data-normal {
-            color: green;
+            color: #3c763d; /* Темно-зеленый */
         }
 
         .data-warning {
-            color: orange;
+            color: #f0ad4e; /* Оранжевый */
         }
 
         .data-critical {
-            color: red;
+            color: #d9534f; /* Красный */
         }
 
         .data-undefined {
-            color: grey;
+            color: #777; /* Серый */
         }
 
         label {
             margin-right: 10px;
+            font-weight: bold;
         }
 
         input[type="text"] {
             padding: 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
+            margin-right: 10px;
+            min-width: 250px; /* Чтобы поле токена было шире */
         }
 
         button {
             padding: 8px 15px;
-            background-color: #5cb85c;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-left: 10px;
+            margin-left: 5px;
+            transition: background-color 0.2s ease-in-out;
         }
 
-        button:hover {
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #connectBtn, #saveTokenBtn {
+            background-color: #5cb85c;
+        }
+
+        #connectBtn:hover:not(:disabled), #saveTokenBtn:hover:not(:disabled) {
             background-color: #4cae4c;
         }
 
-        button:hover {
-            background-color: #4cae5c;
-        }
-
-        button#disconnectBtn {
+        #disconnectBtn {
             background-color: #d9534f;
         }
 
-        button#disconnectBtn:hover {
+        #disconnectBtn:hover:not(:disabled) {
             background-color: #c9302c;
         }
     </style>
@@ -126,8 +158,16 @@
 <div id="container">
     <h1>Мониторинг Данных Сенсора</h1>
 
+    <div id="auth-controls">
+        <label for="jwtTokenInput">JWT Токен:</label>
+        <input type="text" id="jwtTokenInput" placeholder="Вставьте ваш Bearer токен">
+        <button id="saveTokenBtn">Сохранить токен</button>
+        <p><em>Для теста: получите токен через ваше API логина (POST /api/v1/auth/login), скопируйте accessToken и
+            вставьте сюда. Можно с префиксом "Bearer ", можно без.</em></p>
+    </div>
+
     <div id="controls">
-        <label for="sensorIdInput">ID Сенсора для мониторинга:</label>
+        <label for="sensorIdInput">ID Сенсора:</label>
         <input type="text" id="sensorIdInput" placeholder="Введите UUID сенсора">
         <button id="connectBtn">Подключиться</button>
         <button id="disconnectBtn" disabled>Отключиться</button>
@@ -143,17 +183,37 @@
 <script>
     let stompClient = null;
     let currentSubscription = null;
-    const MAX_MESSAGES = 30; // Максимальное количество отображаемых сообщений
+    const MAX_MESSAGES = 30;
+    let jwtToken = localStorage.getItem('jwtToken');
 
     const connectBtn = document.getElementById('connectBtn');
     const disconnectBtn = document.getElementById('disconnectBtn');
     const sensorIdInput = document.getElementById('sensorIdInput');
     const statusDiv = document.getElementById('status');
     const dataDisplay = document.getElementById('sensor-data-display');
+    const jwtTokenInput = document.getElementById('jwtTokenInput');
+    const saveTokenBtn = document.getElementById('saveTokenBtn');
+
+    if (jwtToken) {
+        jwtTokenInput.value = jwtToken;
+    }
+
+    saveTokenBtn.addEventListener('click', function () {
+        const tokenValue = jwtTokenInput.value.trim();
+        if (tokenValue) {
+            jwtToken = tokenValue;
+            localStorage.setItem('jwtToken', jwtToken);
+            alert('Токен сохранен в localStorage!');
+        } else {
+            localStorage.removeItem('jwtToken');
+            jwtToken = null;
+            alert('Поле токена пустое, сохраненный токен удален.');
+        }
+    });
 
     function setStatus(message, type) {
         statusDiv.textContent = 'Статус: ' + message;
-        statusDiv.className = 'status-' + type; // status-connected, status-disconnected, status-connecting
+        statusDiv.className = 'status-' + type;
     }
 
     function connect() {
@@ -163,34 +223,50 @@
             return;
         }
 
+        if (!jwtToken) {
+            alert('JWT токен не установлен. Пожалуйста, вставьте и сохраните токен.');
+            return;
+        }
+
         if (stompClient && stompClient.connected) {
-            console.log('Уже подключено. Сначала отключитесь.');
-            // Можно сначала автоматически отключаться, если уже есть активное соединение
-            // disconnect(); // и затем вызывать connect() снова в коллбэке disconnect
+            console.log('Уже подключено. Сначала отключитесь или обновите страницу.');
             return;
         }
 
         clearDataDisplay();
         setStatus('Подключение...', 'connecting');
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = true; // Блокируем на время подключения
+        jwtTokenInput.disabled = true;
+        saveTokenBtn.disabled = true;
+        sensorIdInput.disabled = true;
 
-        // URL вашего WebSocket эндпоинта
+
         const socket = new SockJS('http://localhost:8081/ws-monitoring'); // Убедитесь, что порт 8081 верный
         stompClient = Stomp.over(socket);
         // stompClient.debug = null; // Раскомментируйте для отключения отладочных сообщений STOMP в консоли
 
-        stompClient.connect({}, function (frame) {
+        const connectHeaders = {};
+        if (jwtToken.toLowerCase().startsWith("bearer ")) { // Проверка без учета регистра
+            connectHeaders['Authorization'] = jwtToken;
+        } else {
+            connectHeaders['Authorization'] = `Bearer ${jwtToken}`;
+        }
+        console.log("Попытка подключения с заголовками:", connectHeaders);
+
+        stompClient.connect(connectHeaders, function (frame) {
             setStatus('Подключено к ' + frame.headers['server'], 'connected');
             console.log('Connected: ' + frame);
-            connectBtn.disabled = true;
+            // connectBtn.disabled = true; // Уже задизейблена
             disconnectBtn.disabled = false;
-            sensorIdInput.disabled = true;
+            // sensorIdInput.disabled = true; // Уже задизейблена
+            // jwtTokenInput.disabled = true; // Уже задизейблена
+            // saveTokenBtn.disabled = true;  // Уже задизейблена
 
-            // Отписываемся от предыдущего топика, если он был
             if (currentSubscription) {
                 currentSubscription.unsubscribe();
             }
 
-            // Подписываемся на топик для указанного сенсора
             const topic = `/topic/sensor/${sensorId}/data`;
             console.log('Subscribing to: ' + topic);
             currentSubscription = stompClient.subscribe(topic, function (sensorDataMessage) {
@@ -205,9 +281,22 @@
 
         }, function (error) {
             console.error('STOMP ошибка подключения: ', error);
-            setStatus('Ошибка подключения! Попытка через 5 сек.', 'disconnected');
-            disconnectCleanup(); // Сбрасываем состояние кнопок
-            setTimeout(connect, 5000); // Попытка переподключения
+            let errorMessage = 'Ошибка подключения!';
+            if (typeof error === 'object' && error !== null && error.headers && error.headers.message) {
+                errorMessage = `Ошибка: ${error.headers.message}`;
+            } else if (typeof error === 'string') {
+                const bodyMatch = error.match(/text\/plain(?:;charset=UTF-8)?\s*([\s\S]*?)>>>>>/);
+                if (bodyMatch && bodyMatch[1] && bodyMatch[1].trim()) {
+                    errorMessage = `Ошибка от сервера: ${bodyMatch[1].trim()}`;
+                } else if (error.includes("Whoops! Lost connection to")) {
+                    errorMessage = "Потеряно соединение с сервером.";
+                } else if (error.trim()) {
+                    errorMessage = error.trim();
+                }
+            }
+            setStatus(errorMessage + ' Попытка переподключения через 5 сек.', 'disconnected');
+            disconnectCleanup();
+            setTimeout(connect, 5000);
         });
     }
 
@@ -229,7 +318,9 @@
         connectBtn.disabled = false;
         disconnectBtn.disabled = true;
         sensorIdInput.disabled = false;
-        stompClient = null; // Сбрасываем клиент
+        jwtTokenInput.disabled = false;
+        saveTokenBtn.disabled = false;
+        // stompClient = null; // Не сбрасываем здесь, чтобы избежать ошибок при повторном connect если disconnect не завершился
     }
 
     function clearDataDisplay() {
@@ -238,27 +329,29 @@
 
     function showSensorData(data) {
         if (dataDisplay.firstChild && dataDisplay.firstChild.textContent === 'Ожидание данных...') {
-            dataDisplay.innerHTML = ''; // Очищаем "Ожидание данных..."
+            dataDisplay.innerHTML = '';
         }
 
         const p = document.createElement('p');
-        // Форматируем вывод времени для лучшей читаемости
-        const formattedTimestamp = data.timestamp ? new Date(data.timestamp).toLocaleString('ru-RU') : 'N/A';
+        const formattedTimestamp = data.timestamp ? new Date(data.timestamp).toLocaleString('ru-RU', {
+            dateStyle: 'short',
+            timeStyle: 'medium'
+        }) : 'N/A';
+        const statusText = data.status ? data.status.toString().toUpperCase() : 'UNDEFINED';
+        const statusClass = data.status ? data.status.toString().toLowerCase() : 'undefined';
 
-        p.innerHTML = `<strong>ID Сенсора:</strong> ${data.sensorId}<br>
-                           <strong>ID Техники:</strong> ${data.technicId || 'N/A'}<br>
-                           <strong>S/N:</strong> ${data.sensorSerialNumber}<br>
+
+        p.innerHTML = `<strong>S/N:</strong> ${data.sensorSerialNumber || 'N/A'}
+                           (ID: ${data.sensorId || 'N/A'})<br>
+                           <strong>Техника ID:</strong> ${data.technicId || 'N/A'}<br>
                            <strong>Тип:</strong> ${data.sensorType || 'N/A'} |
-                           <strong>Значение:</strong> ${data.value} ${data.unitOfMeasurement || ''}<br>
-                           <strong>Статус:</strong> <span class="data-${(data.status || 'undefined').toLowerCase()}">${data.status || 'UNDEFINED'}</span><br>
+                           <strong>Значение:</strong> ${data.value !== undefined && data.value !== null ? data.value : 'N/A'} ${data.unitOfMeasurement || ''}<br>
+                           <strong>Статус:</strong> <span class="data-${statusClass}">${statusText}</span> |
                            <strong>Время:</strong> ${formattedTimestamp}`;
 
-        // Добавляем класс в зависимости от статуса для стилизации
-        p.classList.add(`data-${(data.status || 'undefined').toLowerCase()}`);
+        p.classList.add(`data-${statusClass}`);
+        dataDisplay.insertBefore(p, dataDisplay.firstChild);
 
-        dataDisplay.insertBefore(p, dataDisplay.firstChild); // Добавляем новое сообщение сверху
-
-        // Ограничиваем количество сообщений на экране
         while (dataDisplay.childNodes.length > MAX_MESSAGES) {
             dataDisplay.removeChild(dataDisplay.lastChild);
         }

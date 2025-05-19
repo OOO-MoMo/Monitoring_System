@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS sensors
 (
     id                   UUID PRIMARY KEY             DEFAULT gen_random_uuid(),
     type_id              UUID                NOT NULL REFERENCES sensor_types (id),
-    company_id           UUID                NOT NULL REFERENCES companies (id),
+    company_id UUID REFERENCES companies (id) ON DELETE SET NULL,
     technic_id           UUID REFERENCES technics (id),
     serial_number        VARCHAR(255) UNIQUE NOT NULL,
     manufacturer         VARCHAR(255),

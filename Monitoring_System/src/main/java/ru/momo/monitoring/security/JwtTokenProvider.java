@@ -82,7 +82,7 @@ public class JwtTokenProvider {
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
-    private String getUsername(String token){
+    public String getUsername(String token) {
         return Jwts
                 .parserBuilder()
                 .setSigningKey(key)
