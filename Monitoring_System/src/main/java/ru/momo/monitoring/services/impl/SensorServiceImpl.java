@@ -130,6 +130,13 @@ public class SensorServiceImpl implements SensorService {
         Sensor sensor = sensorRepository.findByIdOrThrow(request.sensorId());
         Technic technic = technicService.getEntityById(request.technicId());
 
+        boolean isAuthenticated =
+                (sensor.getCompany() == null || sensor.getCompany().getId().equals(technic.getCompany().getId()));
+
+        if (!isAuthenticated) {
+            throw new AccessDeniedException("Access denied");
+        }
+
         if (technic.getSensors().stream().anyMatch(s -> s.getId().equals(sensor.getId()))) {
             throw new EntityDuplicationException("Sensor already assigned to this technic");
         }
@@ -453,6 +460,36 @@ public class SensorServiceImpl implements SensorService {
                 .avgValue(avgValue)
                 .lastValue(lastValue)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countTotalSensors() {
+        return (int) sensorRepository.count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countTotalActiveSensors() {
+        return sensorRepository.countByIsActiveTrue();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countSensorsByCompany(UUID companyId) {
+        return sensorRepository.countByCompanyId(companyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countActiveSensorsByCompany(UUID companyId) {
+        return sensorRepository.countByCompanyIdAndIsActiveTrue(companyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countActiveSensorsByTechnic(UUID technicId) {
+        return sensorRepository.countByTechnicIdAndIsActiveTrue(technicId);
     }
 
     private List<AggregatedSensorDataViewImpl> mapNativeResultsToView(List<Object[]> nativeResults, AggregationType aggType) {

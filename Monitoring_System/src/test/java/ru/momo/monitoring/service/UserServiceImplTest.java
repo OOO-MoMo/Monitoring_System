@@ -1,14 +1,16 @@
 package ru.momo.monitoring.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import ru.momo.monitoring.exceptions.AccessDeniedException;
+import ru.momo.monitoring.exceptions.UserBadRequestException;
 import ru.momo.monitoring.services.impl.UserServiceImpl;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
@@ -28,8 +30,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,224 +51,386 @@ class UserServiceImplTest {
     @InjectMocks
     private UserServiceImpl userService;
 
+    private User testUser;
+    private UserData testUserData;
+    private Company testCompany;
     private final UUID userId = UUID.randomUUID();
-
+    private final UUID companyId = UUID.randomUUID();
     private final String email = "test@example.com";
+    private final String phoneNumber = "+79001234567";
+
+    @BeforeEach
+    void setUp() {
+        testCompany = new Company();
+        testCompany.setId(companyId);
+        testCompany.setName("Test Corp");
+
+        testUser = new User();
+        testUser.setId(userId);
+        testUser.setEmail(email);
+        testUser.setCompany(testCompany);
+        testUser.setRole(RoleName.ROLE_MANAGER);
+        testUser.setIsActive(true);
+        testUser.setIsConfirmed(true);
+
+        testUserData = new UserData();
+        testUserData.setUser(testUser);
+        testUserData.setFirstname("Тест");
+        testUserData.setLastname("Тестов");
+        testUserData.setPhoneNumber(phoneNumber);
+        testUser.setUserData(testUserData);
+    }
 
     @Test
     void getById_ShouldReturnMappedUserResponseDto() {
-        User user = new User();
-        user.setEmail(email);
-        user.setCompany(new Company());
-        when(userRepository.findByIdOrThrow(userId)).thenReturn(user);
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
 
         UserResponseDto result = userService.getById(userId);
 
+        assertNotNull(result);
         assertEquals(email, result.getEmail());
         verify(userRepository).findByIdOrThrow(userId);
     }
 
     @Test
-    void update_ShouldUpdateUserData() {
-        // given
-        User user = new User();
-        user.setEmail(email);
-        UserData userData = new UserData();
-        user.setUserData(userData);
-        user.setCompany(new Company());
+    void getByIdEntity_ShouldReturnUser() {
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
+        User result = userService.getByIdEntity(userId);
+        assertEquals(testUser, result);
+    }
 
+    @Test
+    void getByEmail_ShouldReturnUser() {
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
+        User result = userService.getByEmail(email);
+        assertEquals(testUser, result);
+    }
+
+
+    // --- Тесты для метода update ---
+    @Test
+    void update_WhenUserDataIsNull_ShouldCreateAndSetUserData() {
+        User userWithoutData = new User();
+        userWithoutData.setEmail(email);
+        userWithoutData.setCompany(testCompany);
+
+        UserUpdateRequestDto request = UserUpdateRequestDto.builder().firstname("НовоеИмя").build();
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(userWithoutData);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+
+        userService.update(request, email);
+
+        assertNotNull(userWithoutData.getUserData());
+        assertEquals("НовоеИмя", userWithoutData.getUserData().getFirstname());
+        verify(userRepository).save(userWithoutData);
+    }
+
+    @Test
+    void update_WhenPhoneNumberExists_ShouldThrowException() {
+        UserUpdateRequestDto request = UserUpdateRequestDto.builder().phoneNumber(phoneNumber).build();
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
+        when(userRepository.existsByUserData_PhoneNumber(phoneNumber)).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> userService.update(request, email));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void update_WithValidData_ShouldUpdateAndSaveUser() {
         UserUpdateRequestDto request = UserUpdateRequestDto.builder()
                 .firstname("Иван")
                 .lastname("Иванов")
                 .patronymic("Иванович")
-                .phoneNumber("+79001234567")
-                .address("Москва")
-                .dateOfBirth(LocalDate.of(1990, 5, 20))
+                .phoneNumber("+79998887766")
+                .address("Новый адрес")
+                .dateOfBirth(LocalDate.of(1995, 1, 1))
                 .build();
 
-        when(userRepository.findByEmailOrThrow(email)).thenReturn(user);
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
         when(userRepository.existsByUserData_PhoneNumber(request.getPhoneNumber())).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
 
-        // when
-        UserResponseDto response = userService.update(request, email);
 
-        // then
-        assertEquals("Иван", user.getUserData().getFirstname());
-        assertEquals("Иванов", user.getUserData().getLastname());
-        assertEquals("Иванович", user.getUserData().getPatronymic());
-        assertEquals("+79001234567", user.getUserData().getPhoneNumber());
+        UserResponseDto result = userService.update(request, email);
 
-        verify(userRepository).save(user);
+        assertNotNull(result);
+        assertEquals("Иван", testUser.getUserData().getFirstname());
+        assertEquals("+79998887766", testUser.getUserData().getPhoneNumber());
+        verify(userRepository).save(testUser);
     }
+
 
     @Test
     void delete_ShouldDeactivateUser() {
-        User user = new User();
-        user.setCompany(new Company());
-        user.setIsActive(true);
-
-        when(userRepository.findByIdOrThrow(userId)).thenReturn(user);
-
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
         userService.delete(userId);
-
-        assertFalse(user.getIsActive());
-        verify(userRepository).save(user);
+        assertFalse(testUser.getIsActive());
+        verify(userRepository).save(testUser);
     }
 
     @Test
     void confirmUser_ShouldSetConfirmedTrue() {
-        User user = new User();
-        user.setIsConfirmed(false);
-        user.setEmail(email);
-        user.setCompany(new Company());
-
-        when(userRepository.findByEmailOrThrow(email)).thenReturn(user);
-        when(userRepository.save(user)).thenReturn(user);
+        testUser.setIsConfirmed(false);
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
+        when(userRepository.save(testUser)).thenReturn(testUser);
 
         User result = userService.confirmUser(email);
-
         assertTrue(result.getIsConfirmed());
-        verify(userRepository).save(user);
+    }
+
+
+    // --- Тесты для getNewUserRoleByCurrentUser ---
+    @Test
+    void getNewUserRoleByCurrentUser_WhenAdmin_ShouldReturnManager() {
+        testUser.setRole(RoleName.ROLE_ADMIN);
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
+        assertEquals(RoleName.ROLE_MANAGER, userService.getNewUserRoleByCurrentUser(email));
     }
 
     @Test
-    void saveNotConfirmedUser_ShouldEncodePasswordAndSaveUser() {
-        RegisterRequest request = new RegisterRequest(
-                "newuser@example.com",
-                "password",
-                "password",
-                UUID.randomUUID()
-        );
-
-        Company company = new Company();
-        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
-
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        User savedUser = userService.saveNotConfirmedUser(request, RoleName.ROLE_MANAGER, company);
-
-        verify(userRepository).save(userCaptor.capture());
-        assertEquals("encodedPassword", userCaptor.getValue().getPassword());
-        assertEquals(RoleName.ROLE_MANAGER, savedUser.getRole());
-        assertEquals("newuser@example.com", savedUser.getEmail());
+    void getNewUserRoleByCurrentUser_WhenManager_ShouldReturnDriver() {
+        testUser.setRole(RoleName.ROLE_MANAGER);
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
+        assertEquals(RoleName.ROLE_DRIVER, userService.getNewUserRoleByCurrentUser(email));
     }
 
     @Test
-    void getNewUserRoleByCurrentUser_ShouldReturnCorrectRole() {
-        User admin = new User();
-        admin.setRole(RoleName.ROLE_ADMIN);
-
-        when(userRepository.findByEmailOrThrow(email)).thenReturn(admin);
-
-        RoleName nextRole = userService.getNewUserRoleByCurrentUser(email);
-        assertEquals(RoleName.ROLE_MANAGER, nextRole);
+    void getNewUserRoleByCurrentUser_WhenDriver_ShouldThrowException() {
+        testUser.setRole(RoleName.ROLE_DRIVER);
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
+        assertThrows(IllegalStateException.class, () -> userService.getNewUserRoleByCurrentUser(email));
     }
 
     @Test
     void getCurrentUserByEmail_ShouldReturnUserResponseDto() {
-        User user = new User();
-        user.setEmail(email);
-        user.setCompany(new Company());
-        when(userRepository.findByEmailOrThrow(email)).thenReturn(user);
-
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
         UserResponseDto result = userService.getCurrentUserByEmail(email);
-
-        assertEquals(email, result.getEmail());
-        verify(userRepository).findByEmailOrThrow(email);
+        assertNotNull(result);
+        assertEquals(testUser.getEmail(), result.getEmail());
     }
 
     @Test
     void getCurrentUserRoleByEmail_ShouldReturnRoleName() {
-        User user = new User();
-        user.setEmail(email);
-        user.setCompany(new Company());
-        user.setRole(RoleName.ROLE_MANAGER);
-
-        when(userRepository.findByEmailOrThrow(email)).thenReturn(user);
-
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
         UserRoleResponseDto result = userService.getCurrentUserRoleByEmail(email);
-
-        assertEquals("ROLE_MANAGER", result.roleName());
+        assertEquals(testUser.getRole().name(), result.roleName());
     }
 
     @Test
     void save_ShouldCallRepositorySave() {
-        User user = new User();
-        user.setEmail(email);
-
-        userService.save(user);
-
-        verify(userRepository).save(user);
+        userService.save(testUser);
+        verify(userRepository).save(testUser);
     }
 
     @Test
     void findAllActiveByCompanyId_ShouldReturnUsersList() {
-        UUID companyId = UUID.randomUUID();
-        List<User> users = List.of(new User(), new User());
-
+        List<User> users = List.of(testUser);
         when(userRepository.findUserByCompany_Id(companyId)).thenReturn(users);
-
         List<User> result = userService.findAllActiveByCompanyId(companyId);
-
-        assertEquals(2, result.size());
-        verify(userRepository).findUserByCompany_Id(companyId);
+        assertEquals(users, result);
     }
 
+    // --- Тесты для методов поиска (search*) ---
     @Test
-    void getByIdEntity_ShouldReturnUser() {
-        User user = new User();
-        user.setEmail(email);
-        when(userRepository.findByIdOrThrow(userId)).thenReturn(user);
-
-        User result = userService.getByIdEntity(userId);
-
-        assertEquals(email, result.getEmail());
-    }
-
-    @Test
-    void searchActiveDrivers_ShouldReturnFilteredDrivers() {
-        Company company = new Company();
-        company.setName("company");
-
-        User user1 = new User();
-        user1.setCompany(company);
-        User user2 = new User();
-        user2.setCompany(company);
-        List<User> users = List.of(user1, user2);
-
+    void searchActiveDrivers_WhenManagerHasCompany_ShouldFilterByCompany() {
         User manager = new User();
         manager.setEmail("manager@example.com");
-        manager.setCompany(company);
+        manager.setCompany(testCompany);
 
-        when(userRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(users);
-        when(userService.getByEmail(any())).thenReturn(manager);
+        when(userRepository.findByEmailOrThrow("manager@example.com")).thenReturn(manager);
+        when(userRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(testUser));
 
-        UsersResponseDto result = userService.searchActiveDrivers(
-                "Иван", "Иванов", "Иванович", manager.getEmail()
-        );
-
-        assertEquals(2, result.users().size());
-        verify(userRepository).findAll(any(Specification.class), any(Sort.class));
+        UsersResponseDto result = userService.searchActiveDrivers(null, null, null, "manager@example.com");
+        assertFalse(result.users().isEmpty());
     }
 
     @Test
-    void getCompanyIdForManager_shouldReturnCompanyId() {
-        String email = "manager@example.com";
-        UUID id = UUID.randomUUID();
-
-        Company company = new Company();
-        company.setId(id);
-
-        User manager = new User();
-        manager.setEmail(email);
-        manager.setCompany(company);
-
-        when(userService.getByEmail(email)).thenReturn(manager);
-
-        CompanyIdResponseDto result = userService.getCompanyIdForManager(email);
-
-        assertEquals(id, result.uuid());
+    void searchManagers_ShouldReturnFilteredManagers() {
+        when(userRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(testUser));
+        UsersResponseDto result = userService.searchManagers(companyId, "Тест", null, null, true);
+        assertFalse(result.users().isEmpty());
     }
 
+    @Test
+    void searchDrivers_ShouldReturnFilteredDrivers() {
+        when(userRepository.findAll(any(Specification.class), any(Sort.class))).thenReturn(List.of(testUser));
+        UsersResponseDto result = userService.searchDrivers(companyId, "Тест", null, null, false); // isActive = false
+        assertFalse(result.users().isEmpty());
+    }
+
+
+    @Test
+    void getCompanyIdForManager_ShouldReturnCorrectCompanyId() {
+        when(userRepository.findByEmailOrThrow(email)).thenReturn(testUser);
+        CompanyIdResponseDto result = userService.getCompanyIdForManager(email);
+        assertEquals(testCompany.getId(), result.uuid());
+    }
+
+    // --- Тесты для updateById ---
+    @Test
+    void updateById_WhenActorIsAdmin_ShouldUpdateUser() {
+        User adminActor = new User();
+        adminActor.setRole(RoleName.ROLE_ADMIN);
+        UserUpdateRequestDto request = UserUpdateRequestDto.builder().firstname("Updated").build();
+
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
+        when(userRepository.findByEmailOrThrow("admin_actor@example.com")).thenReturn(adminActor);
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+
+        UserResponseDto result = userService.updateById(userId, request, "admin_actor@example.com");
+        assertEquals("Updated", result.getFirstname());
+    }
+
+    @Test
+    void updateById_WhenManagerUpdatesUserInSameCompany_ShouldUpdate() {
+        User managerActor = new User();
+        managerActor.setRole(RoleName.ROLE_MANAGER);
+        managerActor.setCompany(testCompany);
+        UserUpdateRequestDto request = UserUpdateRequestDto.builder().firstname("UpdatedByManager").build();
+
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
+        when(userRepository.findByEmailOrThrow("manager_actor@example.com")).thenReturn(managerActor);
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        UserResponseDto result = userService.updateById(userId, request, "manager_actor@example.com");
+        assertEquals("UpdatedByManager", result.getFirstname());
+    }
+
+    @Test
+    void updateById_WhenManagerUpdatesUserInDifferentCompany_ShouldThrowAccessDenied() {
+        User managerActor = new User();
+        managerActor.setRole(RoleName.ROLE_MANAGER);
+        Company otherCompany = new Company();
+        otherCompany.setId(UUID.randomUUID());
+        managerActor.setCompany(otherCompany);
+        UserUpdateRequestDto request = UserUpdateRequestDto.builder().build();
+
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
+        when(userRepository.findByEmailOrThrow("manager_actor@example.com")).thenReturn(managerActor);
+
+        assertThrows(AccessDeniedException.class, () -> userService.updateById(userId, request, "manager_actor@example.com"));
+    }
+
+    @Test
+    void updateById_WhenActorIsNotAdminOrManager_ShouldThrowAccessDenied() {
+        User driverActor = new User();
+        driverActor.setRole(RoleName.ROLE_DRIVER);
+        UserUpdateRequestDto request = UserUpdateRequestDto.builder().build();
+
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
+        when(userRepository.findByEmailOrThrow("driver_actor@example.com")).thenReturn(driverActor);
+
+        assertThrows(AccessDeniedException.class, () -> userService.updateById(userId, request, "driver_actor@example.com"));
+    }
+
+    @Test
+    void updateById_WhenNewPhoneNumberIsTaken_ShouldThrowUserBadRequestException() {
+        String takenPhoneNumber = "+70000000000";
+        User adminActor = new User();
+        adminActor.setRole(RoleName.ROLE_ADMIN);
+        UserUpdateRequestDto request = UserUpdateRequestDto.builder().phoneNumber(takenPhoneNumber).build();
+
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
+        when(userRepository.findByEmailOrThrow("admin@example.com")).thenReturn(adminActor);
+        when(userRepository.existsByUserData_PhoneNumberAndIdNot(takenPhoneNumber, userId)).thenReturn(true);
+
+        assertThrows(UserBadRequestException.class, () -> userService.updateById(userId, request, "admin@example.com"));
+    }
+
+    @Test
+    void updateById_WhenPhoneNumberIsBlank_ShouldSetPhoneNumberToNull() {
+        User adminActor = new User();
+        adminActor.setRole(RoleName.ROLE_ADMIN);
+        UserUpdateRequestDto request = UserUpdateRequestDto.builder().phoneNumber("   ").build();
+        testUser.getUserData().setPhoneNumber("oldNumber");
+
+
+        when(userRepository.findByIdOrThrow(userId)).thenReturn(testUser);
+        when(userRepository.findByEmailOrThrow("admin@example.com")).thenReturn(adminActor);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+
+        userService.updateById(userId, request, "admin@example.com");
+        assertNull(testUser.getUserData().getPhoneNumber());
+    }
+
+
+    // --- Тесты для deactivateDriverByManager ---
+    @Test
+    void deactivateDriverByManager_WhenManagerAndDriverInSameCompany_ShouldDeactivate() {
+        User manager = testUser;
+        User driver = new User();
+        driver.setId(UUID.randomUUID());
+        driver.setRole(RoleName.ROLE_DRIVER);
+        driver.setCompany(testCompany);
+        driver.setIsActive(true);
+
+        when(userRepository.findByEmailOrThrow(manager.getEmail())).thenReturn(manager);
+        when(userRepository.findByIdOrThrow(driver.getId())).thenReturn(driver);
+
+        userService.deactivateDriverByManager(driver.getId(), manager.getEmail());
+
+        assertFalse(driver.getIsActive());
+        verify(userRepository).save(driver);
+    }
+
+    @Test
+    void deactivateDriverByManager_WhenTargetIsNotDriver_ShouldThrowUserBadRequest() {
+        User manager = testUser;
+        User notADriver = new User();
+        notADriver.setId(UUID.randomUUID());
+        notADriver.setRole(RoleName.ROLE_MANAGER);
+        notADriver.setCompany(testCompany);
+
+        when(userRepository.findByEmailOrThrow(manager.getEmail())).thenReturn(manager);
+        when(userRepository.findByIdOrThrow(notADriver.getId())).thenReturn(notADriver);
+
+        assertThrows(UserBadRequestException.class, () -> userService.deactivateDriverByManager(notADriver.getId(), manager.getEmail()));
+    }
+
+    @Test
+    void deactivateDriverByManager_WhenManagerAndDriverInDifferentCompanies_ShouldThrowAccessDenied() {
+        User manager = testUser;
+        User driver = new User();
+        driver.setId(UUID.randomUUID());
+        driver.setRole(RoleName.ROLE_DRIVER);
+        Company otherCompany = new Company();
+        otherCompany.setId(UUID.randomUUID());
+        driver.setCompany(otherCompany); // Другая компания
+        driver.setIsActive(true);
+
+        when(userRepository.findByEmailOrThrow(manager.getEmail())).thenReturn(manager);
+        when(userRepository.findByIdOrThrow(driver.getId())).thenReturn(driver);
+
+        assertThrows(AccessDeniedException.class, () -> userService.deactivateDriverByManager(driver.getId(), manager.getEmail()));
+    }
+
+    // --- Тесты для saveNotConfirmedUser ---
+    @Test
+    void saveNotConfirmedUser_WhenPasswordsDoNotMatch_ShouldThrowUserBadRequest() {
+        RegisterRequest request = new RegisterRequest("user@example.com", "pass1", "pass2", companyId, "First", "Last", "123");
+        assertThrows(UserBadRequestException.class, () -> userService.saveNotConfirmedUser(request, RoleName.ROLE_DRIVER, testCompany));
+    }
+
+    @Test
+    void saveNotConfirmedUser_WithValidData_ShouldSaveUserWithEncodedPassword() {
+        RegisterRequest request = new RegisterRequest("user@example.com", "password", "password", companyId, "First", "Last", "123");
+        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User result = userService.saveNotConfirmedUser(request, RoleName.ROLE_DRIVER, testCompany);
+
+        assertEquals("encodedPassword", result.getPassword());
+        assertEquals("user@example.com", result.getEmail());
+        assertEquals(RoleName.ROLE_DRIVER, result.getRole());
+        assertEquals(testCompany, result.getCompany());
+        assertNotNull(result.getUserData());
+        assertEquals("First", result.getUserData().getFirstname());
+        assertFalse(result.getIsConfirmed());
+        assertTrue(result.getIsActive());
+        assertNotNull(result.getTechnics());
+        assertTrue(testCompany.getUsers().contains(result));
+    }
 }

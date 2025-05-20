@@ -5,8 +5,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import ru.momo.monitoring.store.entities.SensorData;
+import ru.momo.monitoring.store.entities.enums.SensorStatus;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -204,6 +206,50 @@ public interface SensorDataRepository extends JpaRepository<SensorData, UUID> {
             "LIMIT 1", nativeQuery = true)
     Optional<Object[]> findLastValueAndStatusInPeriod(
             @Param("sensorId") UUID sensorId,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    long countByStatusInAndTimestampBetween(
+            @Param("statuses") Collection<SensorStatus> statuses,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    // Очень грубый подсчет "рабочих часов" системы
+    @Query(value = "SELECT COUNT(DISTINCT FUNCTION('date_trunc', 'hour', sd.timestamp)) " +
+            "FROM SensorData sd " +
+            "JOIN sd.sensor s " + // Убедимся, что сенсор существует
+            "JOIN s.technic t " + // Убедимся, что сенсор привязан к технике
+            "WHERE t.isActive = true AND sd.timestamp >= :fromTime AND sd.timestamp < :toTime")
+    Long countDistinctHoursWithActiveTechnicData(
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    // Подсчет нарушений для компании
+    long countBySensor_Company_IdAndStatusInAndTimestampBetween(
+            @Param("companyId") UUID companyId,
+            @Param("statuses") Collection<SensorStatus> statuses,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    // Подсчет "рабочих часов" для компании
+    @Query("SELECT COUNT(DISTINCT FUNCTION('date_trunc', 'hour', sd.timestamp)) " +
+            "FROM SensorData sd " +
+            "JOIN sd.sensor s " +
+            "JOIN s.technic t " +
+            "WHERE t.isActive = true AND s.company.id = :companyId AND sd.timestamp >= :fromTime AND sd.timestamp < :toTime")
+    Long countDistinctHoursWithActiveTechnicDataForCompany(
+            @Param("companyId") UUID companyId,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime
+    );
+
+    long countByTechnic_IdAndStatusAndTimestampBetween(
+            @Param("technicId") UUID technicId,
+            @Param("status") SensorStatus status,
             @Param("fromTime") LocalDateTime fromTime,
             @Param("toTime") LocalDateTime toTime
     );

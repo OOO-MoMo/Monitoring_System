@@ -38,4 +38,12 @@ public interface TechnicRepository extends JpaRepository<Technic, UUID>, JpaSpec
         });
     }
 
+    int countByIsActiveTrue();
+
+    int countByCompanyId(UUID companyId);
+
+    int countByCompanyIdAndIsActiveTrue(UUID companyId);
+
+    List<Technic> findByCompanyIdAndIsActiveTrue(UUID companyId);
+
 }

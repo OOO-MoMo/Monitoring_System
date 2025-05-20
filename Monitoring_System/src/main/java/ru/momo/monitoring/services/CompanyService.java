@@ -7,6 +7,7 @@ import ru.momo.monitoring.store.dto.response.CompanyResponseDto;
 import ru.momo.monitoring.store.dto.response.PageCompanyResponseDto;
 import ru.momo.monitoring.store.entities.Company;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface CompanyService {
@@ -26,5 +27,9 @@ public interface CompanyService {
     void save(Company company);
 
     Boolean isExistsById(UUID id);
+
+    int countTotalCompanies();
+
+    List<Company> findAllCompaniesForReport();
 
 }

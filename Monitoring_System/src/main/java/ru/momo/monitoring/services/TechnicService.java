@@ -4,7 +4,6 @@ import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicPutDriverRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
-import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUnassignDriverResponseDto;
@@ -30,8 +29,6 @@ public interface TechnicService {
                                                  String model,
                                                  Boolean isActive);
 
-    TechnicDataResponseDto getSensorsData(UUID id);
-
     TechnicPutDriverResponseDto putNewDriver(TechnicPutDriverRequestDto request);
 
     Technic findByCompanyAndId(UUID companyId, UUID id);
@@ -47,5 +44,17 @@ public interface TechnicService {
     List<TechnicResponseDto> getAllTechnicsForManager();
 
     TechnicUnassignDriverResponseDto unassignDriverFromTechnic(UUID technicId, UUID driverId);
+
+    int countTotalTechnics();
+
+    int countTotalActiveTechnics();
+
+    int countTechnicsByCompany(UUID companyId);
+
+    int countActiveTechnicsByCompany(UUID companyId);
+
+    List<Technic> findAllActiveTechnicsByCompany(UUID companyId);
+
+    List<Technic> findAllTechnicsByCompany(UUID companyId);
 
 }

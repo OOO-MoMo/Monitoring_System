@@ -19,5 +19,6 @@ public class TechnicReportDto {
     private Boolean isActive;
     private LocalDateTime lastServiceDate;
     private LocalDateTime nextServiceDate;
+    private String description;
     private List<SensorReportDto> sensorsSummary;
 }
