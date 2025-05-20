@@ -98,6 +98,7 @@ public class ReportServiceImpl implements ReportService {
                         .isActive(technic.getIsActive())
                         .lastServiceDate(technic.getLastServiceDate())
                         .nextServiceDate(technic.getNextServiceDate())
+                        .description(technic.getDescription())
                         .sensorsSummary(sensorsSummaryList)
                         .build());
             }
