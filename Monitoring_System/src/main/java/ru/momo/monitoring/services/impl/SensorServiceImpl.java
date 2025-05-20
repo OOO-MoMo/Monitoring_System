@@ -130,6 +130,13 @@ public class SensorServiceImpl implements SensorService {
         Sensor sensor = sensorRepository.findByIdOrThrow(request.sensorId());
         Technic technic = technicService.getEntityById(request.technicId());
 
+        boolean isAuthenticated =
+                (sensor.getCompany() == null || sensor.getCompany().getId().equals(technic.getCompany().getId()));
+
+        if (!isAuthenticated) {
+            throw new AccessDeniedException("Access denied");
+        }
+
         if (technic.getSensors().stream().anyMatch(s -> s.getId().equals(sensor.getId()))) {
             throw new EntityDuplicationException("Sensor already assigned to this technic");
         }

@@ -29,7 +29,6 @@ import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicPutDriverRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
-import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUnassignDriverResponseDto;
@@ -317,14 +316,6 @@ public class TechnicController {
             @PathVariable UUID driverId
     ) {
         return technicService.unassignDriverFromTechnic(technicId, driverId);
-    }
-
-    @GetMapping("/data/{id}")
-    public ResponseEntity<?> getSensorsData(@PathVariable UUID id) {
-        TechnicDataResponseDto response = technicService.getSensorsData(id);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(response);
     }
 
 }

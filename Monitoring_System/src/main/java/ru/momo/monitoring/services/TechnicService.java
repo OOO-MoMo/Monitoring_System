@@ -4,7 +4,6 @@ import ru.momo.monitoring.store.dto.request.TechnicCreateRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicPutDriverRequestDto;
 import ru.momo.monitoring.store.dto.request.TechnicUpdateRequestDto;
 import ru.momo.monitoring.store.dto.response.TechnicCreatedResponseDto;
-import ru.momo.monitoring.store.dto.response.TechnicDataResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicPutDriverResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicResponseDto;
 import ru.momo.monitoring.store.dto.response.TechnicUnassignDriverResponseDto;
@@ -29,8 +28,6 @@ public interface TechnicService {
                                                  String brand,
                                                  String model,
                                                  Boolean isActive);
-
-    TechnicDataResponseDto getSensorsData(UUID id);
 
     TechnicPutDriverResponseDto putNewDriver(TechnicPutDriverRequestDto request);
 

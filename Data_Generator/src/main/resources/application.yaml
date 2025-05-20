@@ -14,3 +14,14 @@ generator:
   schedule:
     fixedRate:
       ms: 5000
+  smooth:
+    max-step-percentage: 0.2
+  event:
+    warning:
+      chance: 0.05
+      duration:
+        ticks: 1
+    critical:
+      chance: 0.03
+      duration:
+        ticks: 1
