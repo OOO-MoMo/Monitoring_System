@@ -45,4 +45,16 @@ public interface TechnicService {
 
     TechnicUnassignDriverResponseDto unassignDriverFromTechnic(UUID technicId, UUID driverId);
 
+    int countTotalTechnics();
+
+    int countTotalActiveTechnics();
+
+    int countTechnicsByCompany(UUID companyId);
+
+    int countActiveTechnicsByCompany(UUID companyId);
+
+    List<Technic> findAllActiveTechnicsByCompany(UUID companyId);
+
+    List<Technic> findAllTechnicsByCompany(UUID companyId);
+
 }

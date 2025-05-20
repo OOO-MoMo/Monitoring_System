@@ -120,6 +120,18 @@ public class CompanyServiceImpl implements CompanyService {
         return companyRepository.existsById(id);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public int countTotalCompanies() {
+        return (int) companyRepository.count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Company> findAllCompaniesForReport() {
+        return companyRepository.findAll();
+    }
+
     private void validate(CompanyCreateRequestDto request) {
         companyRepository.throwIfExistWithSameInn(request.inn());
         companyRepository.throwIfExistWithSameName(request.name());

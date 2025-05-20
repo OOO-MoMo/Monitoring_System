@@ -7,12 +7,10 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class ReportHeaderDto {
-    private String driverFullName;
-    private String driverEmail;
-    private String companyName;
+public class ReportHeaderForAdminDto {
+    private String reportName;
     private LocalDateTime periodFrom;
     private LocalDateTime periodTo;
     private LocalDateTime reportGeneratedAt;
-    private String generatedByManagerInfo;
+    private String reportGeneratedBy;
 }

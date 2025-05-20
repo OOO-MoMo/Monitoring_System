@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 @Builder
 public class DriverActivityReportDto {
-    private ReportHeaderDto header;
+    private ReportHeaderForManagerDto header;
     private DriverSummaryDto driverSummary;
     private List<TechnicReportDto> technicsDetails;
 }

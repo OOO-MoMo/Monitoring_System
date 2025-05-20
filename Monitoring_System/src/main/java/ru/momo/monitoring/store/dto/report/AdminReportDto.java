@@ -9,7 +9,7 @@ import java.util.List;
 @Data
 @Builder
 public class AdminReportDto {
-    private ReportHeaderDto header;
+    private ReportHeaderForAdminDto header;
     private GlobalSystemStatsDto globalStats;
     @Singular("companySummary")
     private List<CompanySummaryReportDto> companiesSummary;

@@ -239,6 +239,42 @@ public class TechnicServiceImpl implements TechnicService {
         );
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public int countTotalTechnics() {
+        return (int) technicRepository.count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countTotalActiveTechnics() {
+        return technicRepository.countByIsActiveTrue();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countTechnicsByCompany(UUID companyId) {
+        return technicRepository.countByCompanyId(companyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countActiveTechnicsByCompany(UUID companyId) {
+        return technicRepository.countByCompanyIdAndIsActiveTrue(companyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Technic> findAllActiveTechnicsByCompany(UUID companyId) {
+        return technicRepository.findByCompanyIdAndIsActiveTrue(companyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Technic> findAllTechnicsByCompany(UUID companyId) {
+        return technicRepository.findByCompanyId(companyId);
+    }
+
     private <T> void updateFieldIfNotNull(T value, Consumer<T> setter) {
         if (value != null) {
             setter.accept(value);

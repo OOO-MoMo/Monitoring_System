@@ -12,6 +12,4 @@ public class GlobalSystemStatsDto {
     private int totalSensors;
     private int totalActiveSensors;
     private double averageViolationsPerHour;
-    private String totalSystemUptimeFormatted;
-    private String totalSystemDowntimeFormatted;
 }

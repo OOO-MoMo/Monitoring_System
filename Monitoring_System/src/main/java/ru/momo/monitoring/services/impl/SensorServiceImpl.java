@@ -462,6 +462,36 @@ public class SensorServiceImpl implements SensorService {
                 .build();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public int countTotalSensors() {
+        return (int) sensorRepository.count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countTotalActiveSensors() {
+        return sensorRepository.countByIsActiveTrue();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countSensorsByCompany(UUID companyId) {
+        return sensorRepository.countByCompanyId(companyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countActiveSensorsByCompany(UUID companyId) {
+        return sensorRepository.countByCompanyIdAndIsActiveTrue(companyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countActiveSensorsByTechnic(UUID technicId) {
+        return sensorRepository.countByTechnicIdAndIsActiveTrue(technicId);
+    }
+
     private List<AggregatedSensorDataViewImpl> mapNativeResultsToView(List<Object[]> nativeResults, AggregationType aggType) {
         return nativeResults.stream().map(row -> {
             LocalDateTime timestamp = null;

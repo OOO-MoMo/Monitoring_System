@@ -77,4 +77,14 @@ public interface SensorService {
             LocalDateTime to
     );
 
+    int countTotalSensors();
+
+    int countTotalActiveSensors();
+
+    int countSensorsByCompany(UUID companyId);
+
+    int countActiveSensorsByCompany(UUID companyId);
+
+    int countActiveSensorsByTechnic(UUID technicId);
+
 }

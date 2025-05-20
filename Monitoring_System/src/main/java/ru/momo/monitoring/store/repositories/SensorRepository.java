@@ -34,4 +34,12 @@ public interface SensorRepository extends JpaRepository<Sensor, UUID> {
         return findById(id).orElseThrow(() -> new EntityNotFoundException("Sensor with id " + id + " not found"));
     }
 
+    int countByIsActiveTrue();
+
+    int countByCompanyId(UUID companyId);
+
+    int countByCompanyIdAndIsActiveTrue(UUID companyId);
+
+    int countByTechnicIdAndIsActiveTrue(UUID technicId);
+
 }
