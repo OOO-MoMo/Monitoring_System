@@ -295,7 +295,7 @@ public class ReportServiceImpl implements ReportService {
         long warningCount = 0;
 
         for (Object[] row : statusCountsResult) {
-            SensorStatus statusName = (row[0] instanceof SensorStatus) ? (SensorStatus) row[0] : null;
+            SensorStatus statusName = (row[0] instanceof String) ? SensorStatus.valueOf((String) row[0]) : null;
 
             Number count = (Number) row[1];
 
