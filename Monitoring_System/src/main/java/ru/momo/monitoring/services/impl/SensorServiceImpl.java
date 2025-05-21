@@ -381,6 +381,12 @@ public class SensorServiceImpl implements SensorService {
                     sensor.getCompany().getId().equals(user.getCompany().getId())) {
                 authorized = true;
             }
+        } else if (roleName.equals(RoleName.ROLE_DRIVER)) {
+            if (sensor.getTechnic() != null && user.getTechnics() != null && !user.getTechnics().isEmpty()) {
+                UUID technicIdOfSensor = sensor.getTechnic().getId();
+                authorized = user.getTechnics().stream()
+                        .anyMatch(technic -> technic.getId().equals(technicIdOfSensor));
+            }
         }
 
         if (!authorized) {
@@ -450,7 +456,9 @@ public class SensorServiceImpl implements SensorService {
         if (lastValueAndStatusOpt.isPresent()) {
             Object[] lastData = lastValueAndStatusOpt.get();
             if (lastData[0] instanceof Object[] array) {
-                lastValue = (Double) array[0];
+                if (array[0] instanceof Double value) {
+                    lastValue = value;
+                }
             }
         }
 

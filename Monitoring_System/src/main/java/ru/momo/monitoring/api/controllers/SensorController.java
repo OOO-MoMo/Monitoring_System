@@ -515,7 +515,7 @@ public class SensorController {
     }
 
     @GetMapping("/{sensorId}/history")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_DRIVER')")
     @CheckUserActive
     @Operation(
             summary = "Получить историю данных сенсора",
