@@ -35,7 +35,7 @@ public interface UserService {
 
     UserRoleResponseDto getCurrentUserRoleByEmail(String email);
 
-    void save(User user);
+    User save(User user);
 
     List<User> findAllActiveByCompanyId(UUID id);
 

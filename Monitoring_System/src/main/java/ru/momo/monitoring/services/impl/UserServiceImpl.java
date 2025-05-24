@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.momo.monitoring.exceptions.AccessDeniedException;
 import ru.momo.monitoring.exceptions.UserBadRequestException;
+import ru.momo.monitoring.services.RedisService;
 import ru.momo.monitoring.services.UserService;
 import ru.momo.monitoring.store.dto.request.UserUpdateRequestDto;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
@@ -34,6 +35,7 @@ public class UserServiceImpl implements UserService {
 
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final RedisService redisService;
 
     @Override
     @Transactional(readOnly = true)
@@ -81,13 +83,14 @@ public class UserServiceImpl implements UserService {
         return UserResponseDto.mapFromEntity(user);
     }
 
-    //todo надо сделать чтобы у пользователя токены становились не валидными
     @Override
     @Transactional
     public void delete(UUID id) {
         User deletedUser = userRepository.findByIdOrThrow(id);
         deletedUser.setIsActive(false);
         userRepository.save(deletedUser);
+
+        redisService.invalidateAllUserRefreshTokens(id);
     }
 
     @Override
@@ -127,8 +130,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void save(User user) {
-        userRepository.save(user);
+    public User save(User user) {
+        return userRepository.save(user);
     }
 
     @Override
@@ -253,9 +256,10 @@ public class UserServiceImpl implements UserService {
             throw new AccessDeniedException("Manager can only deactivate drivers within their own company.");
         }
 
-        // todo: Также нужно инвалидировать токены водителя (как и в методе delete)
         driverToDeactivate.setIsActive(false);
         userRepository.save(driverToDeactivate);
+
+        redisService.invalidateAllUserRefreshTokens(driverId);
     }
 
     @Override
