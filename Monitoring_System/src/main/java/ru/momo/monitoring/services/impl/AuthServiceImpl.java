@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,16 +32,19 @@ import ru.momo.monitoring.store.entities.enums.UserActionType;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthServiceImpl implements AuthService {
 
-    AuthenticationManager authenticationManager;
-    UserService userService;
-    JwtTokenProvider jwtTokenProvider;
-    EmailService emailService;
-    RedisService redisService;
-    CompanyService companyService;
-    PasswordEncoder passwordEncoder;
+    final AuthenticationManager authenticationManager;
+    final UserService userService;
+    final JwtTokenProvider jwtTokenProvider;
+    final EmailService emailService;
+    final RedisService redisService;
+    final CompanyService companyService;
+    final PasswordEncoder passwordEncoder;
+
+    @Value(value = "${mail.link.confirmation}")
+    String linkForConfirm;
 
     @Override
     public JwtResponse login(JwtRequest loginRequest) {
@@ -88,7 +92,19 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String confirmationToken = redisService.saveTokenWithValue(userToProcess.getEmail());
-        emailService.sendEmail(userToProcess.getEmail(), confirmationToken);
+        String apiConfirmUrl = linkForConfirm + confirmationToken;
+
+        String recipientName = (userToProcess.getUserData() != null && userToProcess.getUserData().getFirstname() != null)
+                ? userToProcess.getUserData().getFirstname()
+                : userToProcess.getEmail();
+
+        String emailHtmlContent = emailService.createConfirmationEmailHtml(recipientName, apiConfirmUrl);
+
+        String emailSubject = actionType == UserActionType.RE_REGISTERED_AWAITING_CONFIRMATION
+                ? "Повторное подтверждение регистрации"
+                : "Подтверждение регистрации";
+
+        emailService.sendEmail(userToProcess.getEmail(), emailSubject, emailHtmlContent);
 
         return createRegisterJwtResponse(userToProcess, actionType);
     }
@@ -146,7 +162,15 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String confirmationToken = redisService.saveTokenWithValue(email);
-        emailService.sendEmail(email, confirmationToken);
+        String apiConfirmUrl = linkForConfirm + confirmationToken;
+        String recipientName = (user.getUserData() != null && user.getUserData().getFirstname() != null)
+                ? user.getUserData().getFirstname()
+                : user.getEmail();
+
+        String emailHtmlContent = emailService.createConfirmationEmailHtml(recipientName, apiConfirmUrl);
+        emailService.sendEmail(email, "Повторное подтверждение Вашего Email адреса", emailHtmlContent);
+
+        log.info("Resent confirmation email to {}.", email);
         return "Confirmation email has been resent.";
     }
 
