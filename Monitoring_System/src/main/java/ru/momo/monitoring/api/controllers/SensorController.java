@@ -11,10 +11,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +32,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.momo.monitoring.annotations.CheckUserActive;
+import ru.momo.monitoring.exceptions.AccessDeniedException;
 import ru.momo.monitoring.exceptions.ExceptionBody;
+import ru.momo.monitoring.exceptions.ResourceNotFoundException;
+import ru.momo.monitoring.services.ExcelExportService;
+import ru.momo.monitoring.services.SecurityService;
 import ru.momo.monitoring.services.SensorService;
 import ru.momo.monitoring.store.dto.request.CreateSensorRequest;
 import ru.momo.monitoring.store.dto.request.SensorAssignmentRequest;
@@ -35,14 +44,22 @@ import ru.momo.monitoring.store.dto.request.SensorDataHistoryDto;
 import ru.momo.monitoring.store.dto.request.UpdateSensorRequest;
 import ru.momo.monitoring.store.dto.response.SensorDto;
 import ru.momo.monitoring.store.dto.response.SensorsDto;
+import ru.momo.monitoring.store.entities.Sensor;
+import ru.momo.monitoring.store.entities.SensorType;
+import ru.momo.monitoring.store.entities.Technic;
+import ru.momo.monitoring.store.entities.User;
 import ru.momo.monitoring.store.entities.enums.AggregationType;
 import ru.momo.monitoring.store.entities.enums.DataGranularity;
+import ru.momo.monitoring.store.entities.enums.RoleName;
 
+import java.io.ByteArrayInputStream;
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/sensors")
 @RequiredArgsConstructor
@@ -50,6 +67,14 @@ import java.util.UUID;
 public class SensorController {
 
     private final SensorService sensorService;
+
+    private final ExcelExportService excelExportService;
+
+    private final SecurityService securityService;
+
+    private static final DateTimeFormatter REPORT_HEADER_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+
+    private static final DateTimeFormatter FILENAME_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -613,6 +638,128 @@ public class SensorController {
             @RequestParam(required = false) AggregationType aggregationType
     ) {
         return sensorService.getSensorDataHistory(sensorId, from, to, granularity, aggregationType);
+    }
+
+    @GetMapping("/{sensorId}/history/export/excel")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_MANAGER')")
+    @CheckUserActive
+    @Operation(
+            summary = "Экспорт истории данных сенсора в Excel",
+            description = "Генерирует и возвращает Excel файл (.xlsx) с историей показаний сенсора за указанный период. " +
+                    "Параметры `from`, `to`, `granularity`, `aggregationType` работают так же, как для эндпоинта `/history`."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Excel файл успешно сформирован и возвращен.",
+                    content = @Content(mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            ),
+            @ApiResponse(responseCode = "400", description = "Некорректные параметры запроса.",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+            @ApiResponse(responseCode = "401", description = "Пользователь не авторизован.",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен.",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+            @ApiResponse(responseCode = "404", description = "Сенсор не найден.",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class))),
+            @ApiResponse(responseCode = "500", description = "Внутренняя ошибка сервера при генерации отчета.",
+                    content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
+    })
+    public ResponseEntity<InputStreamResource> exportSensorHistoryToExcel(
+            @Parameter(description = "ID сенсора", required = true, example = "a1b2c3d4-e5f6-7890-1234-567890abcdef")
+            @PathVariable UUID sensorId,
+
+            @Parameter(description = "Начало периода (ISO 8601 UTC)", required = true, example = "2024-05-01T00:00:00")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+
+            @Parameter(description = "Конец периода (ISO 8601 UTC)", required = true, example = "2024-05-14T23:59:59")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+
+            @Parameter(description = "Гранулярность агрегации", required = false, schema = @Schema(implementation = DataGranularity.class, defaultValue = "RAW"))
+            @RequestParam(required = false) DataGranularity granularity,
+
+            @Parameter(description = "Тип агрегации", required = false, schema = @Schema(implementation = AggregationType.class))
+            @RequestParam(required = false) AggregationType aggregationType
+    ) {
+        User currentUser = securityService.getCurrentUser();
+
+        boolean hasAccess = false;
+
+        if (currentUser.getRole() == RoleName.ROLE_ADMIN) {
+            hasAccess = true;
+        } else {
+            Sensor sensor = sensorService.getSensorEntityById(sensorId);
+
+            if (sensor == null) {
+                throw new ResourceNotFoundException("Sensor with id " + sensorId + " not found for access check.");
+            }
+
+            if (currentUser.getRole() == RoleName.ROLE_MANAGER) {
+                if (currentUser.getCompany() != null && sensor.getCompany() != null &&
+                        currentUser.getCompany().getId().equals(sensor.getCompany().getId())) {
+                    hasAccess = true;
+                }
+            } else if (currentUser.getRole() == RoleName.ROLE_DRIVER) {
+                Technic technicOfSensor = sensor.getTechnic();
+                if (technicOfSensor != null && technicOfSensor.getOwnerId() != null &&
+                        technicOfSensor.getOwnerId().getId().equals(currentUser.getId())) {
+                    hasAccess = true;
+                }
+            }
+        }
+
+        if (!hasAccess) {
+            log.warn("Access denied for user {} (Role: {}) to sensor {}",
+                    currentUser.getEmail(), currentUser.getRole(), sensorId);
+            throw new AccessDeniedException("User does not have permission to access history for this sensor.");
+        }
+
+
+        List<SensorDataHistoryDto> historyData = sensorService.getSensorDataHistory(sensorId, from, to, granularity, aggregationType);
+
+        String sensorInfoForReport;
+        String sensorSerialNumberForFilename = "sensor_" + sensorId.toString().substring(0, 8);
+        try {
+            ru.momo.monitoring.store.entities.Sensor sensorEntity = sensorService.getSensorEntityById(sensorId);
+            SensorType type = sensorEntity.getType();
+            String typeName = (type != null && type.getName() != null) ? type.getName() : "N/A";
+            String unit = (type != null && type.getUnit() != null) ? " (" + type.getUnit() + ")" : "";
+            sensorSerialNumberForFilename = sensorEntity.getSerialNumber() != null ? sensorEntity.getSerialNumber() : sensorSerialNumberForFilename;
+            sensorInfoForReport = String.format("%s (S/N: %s)%s", typeName, sensorSerialNumberForFilename, unit);
+
+        } catch (ResourceNotFoundException e) {
+            log.warn("Sensor with id {} not found for Excel report header, using default info.", sensorId);
+            sensorInfoForReport = "Сенсор ID: " + sensorId.toString();
+        } catch (Exception e) {
+            log.error("Error fetching sensor details for Excel report, sensorId: {}: {}", sensorId, e.getMessage());
+            sensorInfoForReport = "Сенсор ID: " + sensorId.toString() + " (детали не загружены)";
+        }
+
+        ByteArrayInputStream excelFileStream = excelExportService.generateSensorHistoryExcel(
+                sensorId,
+                sensorInfoForReport,
+                from.format(REPORT_HEADER_DATE_TIME_FORMATTER),
+                to.format(REPORT_HEADER_DATE_TIME_FORMATTER),
+                LocalDateTime.now().format(REPORT_HEADER_DATE_TIME_FORMATTER),
+                historyData
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        String cleanSensorName = sensorSerialNumberForFilename.replaceAll("[^a-zA-Z0-9_\\-.]", "_");
+        String filename = String.format("%s_history_%s_to_%s.xlsx",
+                cleanSensorName,
+                from.format(FILENAME_DATE_FORMATTER),
+                to.format(FILENAME_DATE_FORMATTER));
+        headers.add("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        headers.add("Cache-Control", "no-cache, no-store, must-revalidate");
+        headers.add("Pragma", "no-cache");
+        headers.add("Expires", "0");
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(new InputStreamResource(excelFileStream));
     }
 
 }
