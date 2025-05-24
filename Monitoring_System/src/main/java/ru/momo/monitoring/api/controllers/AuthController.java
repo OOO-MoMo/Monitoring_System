@@ -27,6 +27,7 @@ import ru.momo.monitoring.store.dto.request.JwtRequest;
 import ru.momo.monitoring.store.dto.request.RefreshJwtRequest;
 import ru.momo.monitoring.store.dto.request.auth.RegisterRequest;
 import ru.momo.monitoring.store.dto.response.JwtResponse;
+import ru.momo.monitoring.store.dto.response.RegisterJwtResponse;
 
 import java.security.Principal;
 
@@ -85,12 +86,12 @@ public class AuthController {
             description = "Позволяет зарегистрировать нового пользователя. Только администратор или менеджер могут создавать учетные записи.",
             responses = {
                     @ApiResponse(responseCode = "201", description = "Пользователь успешно зарегистрирован",
-                            content = @Content(schema = @Schema(implementation = JwtResponse.class))),
+                            content = @Content(schema = @Schema(implementation = RegisterJwtResponse.class))),
                     @ApiResponse(responseCode = "403", description = "Недостаточно прав для выполнения операции",
                             content = @Content(schema = @Schema(implementation = ExceptionBody.class)))
             }
     )
-    public JwtResponse register(Principal principal, @RequestBody @Valid RegisterRequest request) {
+    public RegisterJwtResponse register(Principal principal, @RequestBody @Valid RegisterRequest request) {
         return authService.register(request, principal.getName());
     }
 
